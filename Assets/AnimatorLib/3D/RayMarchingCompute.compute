@@ -67,7 +67,7 @@ void Main(uint3 id : SV_DispatchThreadID)
     // Get a ray for the UVs
     Ray ray = CreateCameraRay(uv);
     
-    float maxDist = Linear01Depth(_Depth[id.xy]) * _FarClip;
+    float maxDist = Linear01Depth(_Depth[id.xy]) * (_FarClip - _NearClip);
     
     float curDist = 0;
     float3 sphereCenter = 0;
@@ -93,5 +93,5 @@ void Main(uint3 id : SV_DispatchThreadID)
         }
     }
         
-    _Result[id.xy] = outCol;
+    _Result[id.xy] = 1 - _Depth[id.xy];
 }
