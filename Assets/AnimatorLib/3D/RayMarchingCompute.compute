@@ -1,0 +1,97 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Main
+#include "UnityCG.cginc"
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2D<float4> _Result;
+RWTexture2D<float> _Depth;
+int _Width;
+int _Height;
+
+float4x4 _CameraToWorld;
+float4x4 _CameraInverseProjection;
+
+float _NearClip;
+float _FarClip;
+
+float LinearDepth(float depthSample)
+{
+    depthSample = 2.0 * depthSample - 1.0;
+    float zLinear = 2.0 * _NearClip * _FarClip / (_FarClip + _NearClip - depthSample * (_FarClip - _NearClip));
+    return zLinear;
+}
+
+struct Ray
+{
+    float3 origin;
+    float3 direction;
+};
+
+Ray CreateRay(float3 origin, float3 direction)
+{
+    Ray ray;
+    ray.origin = origin;
+    ray.direction = direction;
+    return ray;
+}
+
+Ray CreateCameraRay(float2 uv)
+{
+    // Transform the camera origin to world space
+    float3 origin = mul(_CameraToWorld, float4(0.0f, 0.0f, 0.0f, 1.0f)).xyz;
+    
+    // Invert the perspective projection of the view-space position
+    float3 direction = mul(_CameraInverseProjection, float4(uv, 0.0f, 1.0f)).xyz;
+    // Transform the direction from camera to world space and normalize
+    direction = mul(_CameraToWorld, float4(direction, 0.0f)).xyz;
+    direction = normalize(direction);
+
+    return CreateRay(origin, direction);
+}
+
+float SphereSDF(float3 center, float3 pos, float radius)
+{
+    return length(center - pos) - radius;
+}
+
+[numthreads(8,8,1)]
+void Main(uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= _Width || id.y >= _Height)
+        return;
+    
+    // Transform pixel to [-1,1] range
+    float2 uv = float2((id.xy + float2(0.5f, 0.5f)) / float2(_Width, _Height) * 2.0f - 1.0f);
+
+    // Get a ray for the UVs
+    Ray ray = CreateCameraRay(uv);
+    
+    float maxDist = Linear01Depth(_Depth[id.xy]) * _FarClip;
+    
+    float curDist = 0;
+    float3 sphereCenter = 0;
+    float sphereRadius = 3;
+    
+    float4 outCol = _Result[id.xy];
+    
+    for (int i = 0; i < 100; i++)
+    {
+        float minDist = SphereSDF(sphereCenter, ray.origin + ray.direction * curDist, sphereRadius);
+        
+        if(minDist <= 0.0001f)
+        {
+            outCol = float4(1, 0, 0, 1);
+            break;
+        }
+        
+        curDist += minDist;
+        
+        if (curDist >= maxDist)
+        {
+            break;
+        }
+    }
+        
+    _Result[id.xy] = outCol;
+}
