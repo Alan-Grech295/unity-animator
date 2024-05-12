@@ -15,13 +15,6 @@ float4x4 _CameraInverseProjection;
 float _NearClip;
 float _FarClip;
 
-float LinearDepth(float depthSample)
-{
-    depthSample = 2.0 * depthSample - 1.0;
-    float zLinear = 2.0 * _NearClip * _FarClip / (_FarClip + _NearClip - depthSample * (_FarClip - _NearClip));
-    return zLinear;
-}
-
 struct Ray
 {
     float3 origin;
@@ -53,6 +46,14 @@ Ray CreateCameraRay(float2 uv)
 float SphereSDF(float3 center, float3 pos, float radius)
 {
     return length(center - pos) - radius;
+}
+
+float LinearDepth(float depth)
+{
+    if(depth == 0)
+        return 1;
+    
+    return pow((0.6822 / depth), 1 / 1.058);
 }
 
 [numthreads(8,8,1)]
@@ -93,5 +94,5 @@ void Main(uint3 id : SV_DispatchThreadID)
         }
     }
         
-    _Result[id.xy] = 1 - _Depth[id.xy];
+    _Result[id.xy] = outCol;
 }
