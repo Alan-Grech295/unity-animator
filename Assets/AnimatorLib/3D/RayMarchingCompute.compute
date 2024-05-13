@@ -2,6 +2,12 @@
 #pragma kernel Main
 #include "UnityCG.cginc"
 
+struct SphereData
+{
+    float3 position;
+    float radius;
+};
+
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
 RWTexture2D<float4> _Result;
@@ -9,13 +15,15 @@ RWTexture2D<float> _Depth;
 int _Width;
 int _Height;
 
+RWStructuredBuffer<SphereData> _Spheres;
+
 float4x4 _CameraToWorld;
 float4x4 _CameraInverseProjection;
 
 float _NearClip;
 float _FarClip;
 
-static const float NORMAL_EPSILON = 0.001f;
+static const float EPSILON = 0.00001f;
 
 struct Ray
 {
@@ -77,14 +85,26 @@ float LinearDepth(float depth)
     return pow((0.6822 / depth), 1 / 1.058);
 }
 
-float SceneSDF(float3 pt)
+float SceneSDF(float3 pos)
 {
-    return SmoothMin(SegmentSDF(0, float3(0, 0, 5), pt, 0.5f), SphereSDF(0, pt, 3), 1);
+    uint numSpheres, stride;
+    _Spheres.GetDimensions(numSpheres, stride);
+    
+    float minDist = _FarClip;
+    for (int i = 0; i < numSpheres; i++)
+    {
+        SphereData sphere = _Spheres[i];
+        minDist = min(minDist, SphereSDF(sphere.position, pos, sphere.radius));
+    }
+    
+    return minDist;
+
+    // return SmoothMin(SegmentSDF(0, float3(0, 0, 5), pt, 0.5f), SphereSDF(0, pt, 3), 1);
 }
 
 float3 SceneNormal(float3 pt)
 {
-    static const float2 eps = float2(0, NORMAL_EPSILON);
+    static const float2 eps = float2(0, EPSILON);
     return normalize(float3(SceneSDF(pt + eps.yxx) - SceneSDF(pt - eps.yxx),
                                    SceneSDF(pt + eps.xyx) - SceneSDF(pt - eps.xyx),
                                    SceneSDF(pt + eps.xxy) - SceneSDF(pt - eps.xxy)));
@@ -114,9 +134,8 @@ void Main(uint3 id : SV_DispatchThreadID)
         float3 pt = ray.origin + ray.direction * curDist;
         float minDist = SceneSDF(pt);
         
-        if(minDist <= 0.001f)
+        if (minDist <= EPSILON)
         {
-            float2 eps = float2(0, NORMAL_EPSILON);
             float3 normal = SceneNormal(pt);
             
             float3 lightDir = float3(0, 1, 0);
