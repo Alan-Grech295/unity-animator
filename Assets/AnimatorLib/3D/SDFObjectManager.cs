@@ -1,15 +1,23 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
+
+public interface SDFData
+{
+    public SDFObjectManager.SDFType Type { get; }
+}
+
 
 public class SDFObjectManager
 {
+    public enum SDFType { SPHERE, BOX }
     private class SDFList<T> where T : struct
     {
         private List<T> sdfs;
         private List<SDFRef> refs;
         private ComputeBuffer buffer;
+
+        private T[] blankSDF;
 
         public ComputeBuffer Buffer
         {
@@ -19,10 +27,14 @@ public class SDFObjectManager
             }
         }
 
-        public SDFList()
+        public SDFList(T blankSDF)
         {
             sdfs = new List<T>();
             refs = new List<SDFRef>();
+
+            this.blankSDF = new T[] { blankSDF };
+
+            ComputeHelper.CreateStructuredBuffer(ref buffer, this.blankSDF);
         }
 
         public T this[int index]
@@ -66,15 +78,15 @@ public class SDFObjectManager
             sdfs.RemoveAt(index);
             refs.RemoveAt(index);
 
-            for(int i = index; i < refs.Count; i++)
+            for (int i = index; i < refs.Count; i++)
             {
                 refs[i].Index--;
             }
 
-            ComputeHelper.CreateStructuredBuffer<T>(ref buffer, sdfs.ToArray());
+            ComputeHelper.CreateStructuredBuffer<T>(ref buffer, sdfs.Count > 0 ? sdfs.ToArray() : blankSDF);
         }
     }
-    public static SDFObjectManager Instance 
+    public static SDFObjectManager Instance
     {
         get
         {
@@ -87,39 +99,67 @@ public class SDFObjectManager
 
     private static SDFObjectManager instance = null;
 
-    private SDFList<SphereData> sphereSDFs;
+    private SDFList<SphereData> sphereSDFs = new SDFList<SphereData>(new SphereData() { position = Vector3.zero, radius = 0 });
+    private SDFList<BoxData> boxSDFs = new SDFList<BoxData>(new BoxData() { transformationInverse = Matrix4x4.zero });
     public static ComputeBuffer SphereBuffer
-    { 
+    {
         get
         {
             return Instance.sphereSDFs.Buffer;
         }
     }
 
+    public static ComputeBuffer BoxBuffer
+    {
+        get
+        {
+            return Instance.boxSDFs.Buffer;
+        }
+    }
+
     // Start is called before the first frame update
     public SDFObjectManager()
     {
-        sphereSDFs = new SDFList<SphereData>();
+
     }
 
-    public static SDFRef AddSphere(SphereData sphereData)
+    public static SDFRef Add<T>(T data) where T : SDFData
     {
-        return Instance.sphereSDFs.Add(sphereData);
+        switch (data.Type)
+        {
+            case SDFType.SPHERE:
+                return Instance.sphereSDFs.Add((SphereData)Convert.ChangeType(data, typeof(SphereData)));
+            case SDFType.BOX:
+                return Instance.boxSDFs.Add((BoxData)Convert.ChangeType(data, typeof(BoxData)));
+        }
+
+        return null;
     }
 
-    public static void UpdateSphere(SphereData sphereData, SDFRef sdfRef)
+    public static void Update<T>(T data, SDFRef sdfRef) where T : SDFData
     {
-        Instance.sphereSDFs[sdfRef.Index] = sphereData;
+        switch (data.Type)
+        {
+            case SDFType.SPHERE:
+                Instance.sphereSDFs[sdfRef.Index] = (SphereData)Convert.ChangeType(data, typeof(SphereData));
+                break;
+            case SDFType.BOX:
+                Instance.boxSDFs[sdfRef.Index] = (BoxData)Convert.ChangeType(data, typeof(BoxData));
+                break;
+        }
     }
 
-    public static void RemoveSphere(SDFRef sdfRef)
+    public static void Destroy(SDFType type, SDFRef sdfRef)
     {
-        Instance.sphereSDFs.Remove(sdfRef.Index);
-    }
-
-    public static void RemoveSphere(SphereData sphereData)
-    {
-        Instance.sphereSDFs.Remove(sphereData);
+        switch (type)
+        {
+            case SDFType.SPHERE:
+                Instance.sphereSDFs.Remove(sdfRef.Index);
+                break;
+            case SDFType.BOX:
+                Instance.boxSDFs.Remove(sdfRef.Index);
+                break;
+        }
     }
 }
 

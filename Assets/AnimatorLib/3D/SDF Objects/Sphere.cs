@@ -1,11 +1,11 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public struct SphereData
+public struct SphereData : SDFData
 {
     public Vector3 position;
     public float radius;
+
+    public SDFObjectManager.SDFType Type => SDFObjectManager.SDFType.SPHERE;
 }
 
 [ExecuteInEditMode]
@@ -34,9 +34,9 @@ public class Sphere : MonoBehaviour
     private bool dirty = false;
 
     // Start is called before the first frame update
-    void Awake()
+    void OnEnable()
     {
-        sdfRef = SDFObjectManager.AddSphere(new SphereData()
+        sdfRef = SDFObjectManager.Add(new SphereData()
         {
             position = transform.position,
             radius = radius
@@ -51,28 +51,33 @@ public class Sphere : MonoBehaviour
         if (pastPos != transform.position)
             dirty = true;
 
-    #if UNITY_EDITOR
+#if UNITY_EDITOR
         dirty = true;
 
-        if(sdfRef == null)
+        if (sdfRef == null)
         {
-            sdfRef = SDFObjectManager.AddSphere(new SphereData()
+            sdfRef = SDFObjectManager.Add(new SphereData()
             {
                 position = transform.position,
                 radius = radius
             });
         }
-    #endif
+#endif
 
-        if(dirty)
+        if (dirty)
         {
-            SDFObjectManager.UpdateSphere(new SphereData()
+            SDFObjectManager.Update(new SphereData()
             {
                 position = transform.position,
                 radius = radius
             }, sdfRef);
             Clean();
         }
+    }
+
+    private void OnDisable()
+    {
+        SDFObjectManager.Destroy(SDFObjectManager.SDFType.SPHERE, sdfRef);
     }
 
     private void Clean()

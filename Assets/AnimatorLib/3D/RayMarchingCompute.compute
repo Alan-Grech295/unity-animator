@@ -8,6 +8,11 @@ struct SphereData
     float radius;
 };
 
+struct BoxData
+{
+    float4x4 transformationInverse;
+};
+
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
 RWTexture2D<float4> _Result;
@@ -16,6 +21,7 @@ int _Width;
 int _Height;
 
 RWStructuredBuffer<SphereData> _Spheres;
+RWStructuredBuffer<BoxData> _Boxes;
 
 float4x4 _CameraToWorld;
 float4x4 _CameraInverseProjection;
@@ -23,7 +29,10 @@ float4x4 _CameraInverseProjection;
 float _NearClip;
 float _FarClip;
 
-static const float EPSILON = 0.00001f;
+#define EPSILON 0.00001f
+
+#define MIN_EPSILON EPSILON
+#define MAX_EPSILON 0.01f
 
 struct Ray
 {
@@ -53,9 +62,42 @@ Ray CreateCameraRay(float2 uv)
     return CreateRay(origin, direction);
 }
 
+float Epsilon(float x)
+{
+    return lerp(MIN_EPSILON, MAX_EPSILON, x / 10000.0f);
+}
+
 float SphereSDF(float3 center, float3 pos, float radius)
 {
     return length(center - pos) - radius;
+}
+
+float BoxSDF(float3 center, float3 pos, float3 size)
+{
+    float x = max(pos.x - center.x - size.x / 2.0,
+                  center.x - pos.x - size.x / 2.0);
+    
+    float y = max(pos.y - center.y - size.y / 2.0,
+                  center.y - pos.y - size.y / 2.0);
+    
+    float z = max(pos.z - center.z - size.z / 2.0,
+                  center.z - pos.z - size.z / 2.0);
+    
+    return max(max(x, y), z);
+}
+
+float UnitCubeSDF(float3 center, float3 pos)
+{
+    float x = max(pos.x - center.x - 0.5f,
+                  center.x - pos.x - 0.5f);
+    
+    float y = max(pos.y - center.y - 0.5f,
+                  center.y - pos.y - 0.5f);
+    
+    float z = max(pos.z - center.z - 0.5f,
+                  center.z - pos.z - 0.5f);
+    
+    return max(max(x, y), z);
 }
 
 float SmoothMin(float a, float b, float k)
@@ -85,16 +127,38 @@ float LinearDepth(float depth)
     return pow((0.6822 / depth), 1 / 1.058);
 }
 
+float SqrLength(float3 x)
+{
+    return dot(x, x);
+}
+
 float SceneSDF(float3 pos)
 {
     uint numSpheres, stride;
     _Spheres.GetDimensions(numSpheres, stride);
+    
+    uint numBoxes;
+    _Boxes.GetDimensions(numBoxes, stride);
     
     float minDist = _FarClip;
     for (int i = 0; i < numSpheres; i++)
     {
         SphereData sphere = _Spheres[i];
         minDist = min(minDist, SphereSDF(sphere.position, pos, sphere.radius));
+    }
+    
+    for (int i = 0; i < numBoxes; i++)
+    {
+        BoxData box = _Boxes[i];
+        
+        float4x4 transposed = transpose(box.transformationInverse);
+        float4x4 mat = box.transformationInverse;
+        
+        if (SqrLength(mat[0].xyz) == 0 || SqrLength(mat[1].xyz) == 0 || SqrLength(mat[2].xyz) == 0)
+           continue;
+        
+        float3 boxPos = -transposed[3].xyz;
+        minDist = min(minDist, UnitCubeSDF(boxPos, mul(box.transformationInverse, float4(pos.xyz, 0)).xyz));
     }
     
     return minDist;
@@ -104,7 +168,7 @@ float SceneSDF(float3 pos)
 
 float3 SceneNormal(float3 pt)
 {
-    static const float2 eps = float2(0, EPSILON);
+    float2 eps = float2(0, max(max(Epsilon(pt.x), Epsilon(pt.y)), Epsilon(pt.z)));
     return normalize(float3(SceneSDF(pt + eps.yxx) - SceneSDF(pt - eps.yxx),
                                    SceneSDF(pt + eps.xyx) - SceneSDF(pt - eps.xyx),
                                    SceneSDF(pt + eps.xxy) - SceneSDF(pt - eps.xxy)));
