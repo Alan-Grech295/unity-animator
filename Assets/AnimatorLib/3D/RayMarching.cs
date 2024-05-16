@@ -53,8 +53,11 @@ public class RayMarching : ScriptableRendererFeature
 
             cmd.SetComputeTextureParam(rayMarchingCompute, mainKernel, renderTargetID, renderTargetIdentifier);
             cmd.SetComputeTextureParam(rayMarchingCompute, mainKernel, depthTargetID, depthTargetIdentifier);
+
             cmd.SetComputeBufferParam(rayMarchingCompute, mainKernel, "_Spheres", SDFObjectManager.SphereBuffer);
             cmd.SetComputeBufferParam(rayMarchingCompute, mainKernel, "_Boxes", SDFObjectManager.BoxBuffer);
+            cmd.SetComputeBufferParam(rayMarchingCompute, mainKernel, "_Materials", SDFObjectManager.MaterialBuffer);
+
             cmd.SetComputeIntParam(rayMarchingCompute, "_Width", renderTextureWidth);
             cmd.SetComputeIntParam(rayMarchingCompute, "_Height", renderTextureHeight);
 

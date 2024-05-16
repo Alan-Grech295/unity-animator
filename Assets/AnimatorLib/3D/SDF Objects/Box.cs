@@ -3,6 +3,7 @@ using UnityEngine;
 public struct BoxData : SDFData
 {
     public Matrix4x4 transformationInverse;
+    public int MaterialIndex;
 
     public SDFObjectManager.SDFType Type => SDFObjectManager.SDFType.BOX;
 }
@@ -10,6 +11,7 @@ public struct BoxData : SDFData
 [ExecuteInEditMode]
 public class Box : MonoBehaviour
 {
+    public SDFMaterial material;
     SDFRef sdfRef;
 
     private Vector3 pastPos;
@@ -18,7 +20,7 @@ public class Box : MonoBehaviour
     // Start is called before the first frame update
     void OnEnable()
     {
-        sdfRef = SDFObjectManager.Add(GetBoxData());
+        sdfRef = SDFObjectManager.Add(GetBoxData(), material);
 
         pastPos = transform.position;
     }
@@ -34,7 +36,7 @@ public class Box : MonoBehaviour
 
         if (sdfRef == null)
         {
-            sdfRef = SDFObjectManager.Add(GetBoxData());
+            sdfRef = SDFObjectManager.Add(GetBoxData(), material);
         }
 #endif
 

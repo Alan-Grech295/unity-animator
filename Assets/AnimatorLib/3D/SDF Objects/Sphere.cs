@@ -4,6 +4,7 @@ public struct SphereData : SDFData
 {
     public Vector3 position;
     public float radius;
+    public int MaterialIndex;
 
     public SDFObjectManager.SDFType Type => SDFObjectManager.SDFType.SPHERE;
 }
@@ -11,6 +12,7 @@ public struct SphereData : SDFData
 [ExecuteInEditMode]
 public class Sphere : MonoBehaviour
 {
+    public SDFMaterial material;
     public float Radius
     {
         get
@@ -40,7 +42,7 @@ public class Sphere : MonoBehaviour
         {
             position = transform.position,
             radius = radius
-        });
+        }, material);
 
         pastPos = transform.position;
     }
@@ -60,7 +62,7 @@ public class Sphere : MonoBehaviour
             {
                 position = transform.position,
                 radius = radius
-            });
+            }, material);
         }
 #endif
 

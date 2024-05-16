@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public interface SDFData
@@ -101,6 +102,12 @@ public class SDFObjectManager
 
     private SDFList<SphereData> sphereSDFs = new SDFList<SphereData>(new SphereData() { position = Vector3.zero, radius = 0 });
     private SDFList<BoxData> boxSDFs = new SDFList<BoxData>(new BoxData() { transformationInverse = Matrix4x4.zero });
+
+    private Dictionary<SDFMaterial, int> materialToIndex = new Dictionary<SDFMaterial, int>();
+    private List<SDFMaterial> sDFMaterials = new List<SDFMaterial>();
+
+    private ComputeBuffer materialBuffer;
+
     public static ComputeBuffer SphereBuffer
     {
         get
@@ -117,35 +124,71 @@ public class SDFObjectManager
         }
     }
 
+    public static ComputeBuffer MaterialBuffer
+    {
+        get
+        {
+            Instance.materialBuffer.SetData(Instance.sDFMaterials.Select(m => m.ToMaterialData()).ToArray());
+            return Instance.materialBuffer;
+        }
+    }
+
     // Start is called before the first frame update
     public SDFObjectManager()
     {
-
+        ComputeHelper.CreateStructuredBuffer<SDFMaterialData>(ref materialBuffer, 1);
     }
 
-    public static SDFRef Add<T>(T data) where T : SDFData
+    public static SDFRef Add<T>(T data, SDFMaterial material) where T : struct, SDFData
     {
         switch (data.Type)
         {
             case SDFType.SPHERE:
-                return Instance.sphereSDFs.Add((SphereData)Convert.ChangeType(data, typeof(SphereData)));
+                {
+                    SphereData sphereData = (SphereData)Convert.ChangeType(data, typeof(SphereData));
+                    sphereData.MaterialIndex = GetMaterialIndex(material);
+                    return Instance.sphereSDFs.Add(sphereData);
+                }
             case SDFType.BOX:
-                return Instance.boxSDFs.Add((BoxData)Convert.ChangeType(data, typeof(BoxData)));
+                {
+                    BoxData boxData = (BoxData)Convert.ChangeType(data, typeof(BoxData));
+                    boxData.MaterialIndex = GetMaterialIndex(material);
+                    return Instance.boxSDFs.Add(boxData);
+                }
         }
 
         return null;
     }
 
-    public static void Update<T>(T data, SDFRef sdfRef) where T : SDFData
+    private static int GetMaterialIndex(SDFMaterial material)
+    {
+        if (!Instance.materialToIndex.ContainsKey(material))
+        {
+            Instance.materialToIndex[material] = Instance.sDFMaterials.Count;
+            Instance.sDFMaterials.Add(material);
+            ComputeHelper.CreateStructuredBuffer<SDFMaterialData>(ref Instance.materialBuffer, Instance.sDFMaterials.Count);
+        }
+        return Instance.materialToIndex[material];
+    }
+
+    public static void Update<T>(T data, SDFRef sdfRef) where T : struct, SDFData
     {
         switch (data.Type)
         {
             case SDFType.SPHERE:
-                Instance.sphereSDFs[sdfRef.Index] = (SphereData)Convert.ChangeType(data, typeof(SphereData));
-                break;
+                {
+                    SphereData sphereData = (SphereData)Convert.ChangeType(data, typeof(SphereData));
+                    sphereData.MaterialIndex = Instance.sphereSDFs[sdfRef.Index].MaterialIndex;
+                    Instance.sphereSDFs[sdfRef.Index] = sphereData;
+                    break;
+                }
             case SDFType.BOX:
-                Instance.boxSDFs[sdfRef.Index] = (BoxData)Convert.ChangeType(data, typeof(BoxData));
-                break;
+                {
+                    BoxData boxData = (BoxData)Convert.ChangeType(data, typeof(BoxData));
+                    boxData.MaterialIndex = Instance.boxSDFs[sdfRef.Index].MaterialIndex;
+                    Instance.boxSDFs[sdfRef.Index] = boxData;
+                    break;
+                }
         }
     }
 

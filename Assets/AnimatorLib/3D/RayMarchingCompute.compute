@@ -6,11 +6,24 @@ struct SphereData
 {
     float3 position;
     float radius;
+    int materialIndex;
 };
 
 struct BoxData
 {
     float4x4 transformationInverse;
+    int materialIndex;
+};
+
+
+struct MaterialData
+{
+    float4 Albedo;
+    float Smoothness;
+    float SpecularPower;
+    float4 Ambient;
+    float AmbientStrength;
+    float Opacity;
 };
 
 // Create a RenderTexture with enableRandomWrite flag and set it
@@ -22,6 +35,7 @@ int _Height;
 
 RWStructuredBuffer<SphereData> _Spheres;
 RWStructuredBuffer<BoxData> _Boxes;
+RWStructuredBuffer<MaterialData> _Materials;
 
 float4x4 _CameraToWorld;
 float4x4 _CameraInverseProjection;
@@ -29,10 +43,14 @@ float4x4 _CameraInverseProjection;
 float _NearClip;
 float _FarClip;
 
-#define EPSILON 0.00001f
+#define EPSILON 0.0001f
 
 #define MIN_EPSILON EPSILON
 #define MAX_EPSILON 0.01f
+
+#define INNER_STEP 0.01f
+
+#define MAX_TRANSPARENT_INTERSECTIONS 100
 
 struct Ray
 {
@@ -132,7 +150,7 @@ float SqrLength(float3 x)
     return dot(x, x);
 }
 
-float SceneSDF(float3 pos)
+float2 SceneSDF(float3 pos)
 {
     uint numSpheres, stride;
     _Spheres.GetDimensions(numSpheres, stride);
@@ -141,10 +159,16 @@ float SceneSDF(float3 pos)
     _Boxes.GetDimensions(numBoxes, stride);
     
     float minDist = _FarClip;
+    int materialIndex = 0;
     for (int i = 0; i < numSpheres; i++)
     {
         SphereData sphere = _Spheres[i];
-        minDist = min(minDist, SphereSDF(sphere.position, pos, sphere.radius));
+        float dist = SphereSDF(sphere.position, pos, sphere.radius);
+        if ((dist >= 0 || minDist == _FarClip) && dist < minDist)
+        {
+            minDist = dist;
+            materialIndex = sphere.materialIndex;
+        }
     }
     
     for (int i = 0; i < numBoxes; i++)
@@ -158,10 +182,16 @@ float SceneSDF(float3 pos)
            continue;
         
         float3 boxPos = -transposed[3].xyz;
-        minDist = min(minDist, UnitCubeSDF(boxPos, mul(box.transformationInverse, float4(pos.xyz, 0)).xyz));
+        
+        float dist = UnitCubeSDF(boxPos, mul(box.transformationInverse, float4(pos.xyz, 0)).xyz);
+        if ((dist >= 0 || minDist == _FarClip) && dist < minDist)
+        {
+            minDist = dist;
+            materialIndex = box.materialIndex;
+        }
     }
     
-    return minDist;
+    return float2(minDist, materialIndex);
 
     // return SmoothMin(SegmentSDF(0, float3(0, 0, 5), pt, 0.5f), SphereSDF(0, pt, 3), 1);
 }
@@ -169,10 +199,24 @@ float SceneSDF(float3 pos)
 float3 SceneNormal(float3 pt)
 {
     float2 eps = float2(0, max(max(Epsilon(pt.x), Epsilon(pt.y)), Epsilon(pt.z)));
-    return normalize(float3(SceneSDF(pt + eps.yxx) - SceneSDF(pt - eps.yxx),
-                                   SceneSDF(pt + eps.xyx) - SceneSDF(pt - eps.xyx),
-                                   SceneSDF(pt + eps.xxy) - SceneSDF(pt - eps.xxy)));
+    return normalize(float3(SceneSDF(pt + eps.yxx).x - SceneSDF(pt - eps.yxx).x,
+                                   SceneSDF(pt + eps.xyx).x - SceneSDF(pt - eps.xyx).x,
+                                   SceneSDF(pt + eps.xxy).x - SceneSDF(pt - eps.xxy).x));
                                    
+}
+
+float4 GetColor(float3 pos, float3 rayDir, int materialIndex)
+{
+    MaterialData material = _Materials[materialIndex];
+    float3 normal = SceneNormal(pos);
+    
+    float3 lightDir = float3(0, 1, 0);
+    
+    float diffuse = saturate(dot(normal, lightDir));
+            
+    float specular = pow(saturate(dot(reflect(lightDir, normal), rayDir)), material.SpecularPower);
+            
+    return float4((material.Albedo * diffuse + specular * material.Smoothness + material.Ambient * material.AmbientStrength).xyz, material.Opacity);
 }
 
 [numthreads(8,8,1)]
@@ -193,30 +237,35 @@ void Main(uint3 id : SV_DispatchThreadID)
     
     float4 outCol = _Result[id.xy];
     
+    float4 hitCols[MAX_TRANSPARENT_INTERSECTIONS];
+    int index = 0;
+    
     for (int i = 0; i < 1000; i++)
     {
         float3 pt = ray.origin + ray.direction * curDist;
-        float minDist = SceneSDF(pt);
+        float2 sceneData = SceneSDF(pt);
         
-        if (minDist <= EPSILON)
-        {
-            float3 normal = SceneNormal(pt);
-            
-            float3 lightDir = float3(0, 1, 0);
-            float diffuse = saturate(dot(normal, lightDir));
-            
-            float specular = pow(saturate(dot(reflect(lightDir, normal), ray.direction)), 2);
-            
-            outCol = float4(1, 0, 0, 1) * diffuse + specular * 0.5f;
-            break;
+        if (abs(sceneData.x) <= EPSILON)
+        {            
+            float4 col = GetColor(pt, ray.direction, (int) sceneData.y);
+            hitCols[index] = col;
+            index++;
+            if(col.a == 1)
+                break;
         }
         
-        curDist += minDist;
+        curDist += abs(sceneData.x) > EPSILON ? abs(sceneData.x) : INNER_STEP;
         
         if (curDist >= maxDist)
         {
             break;
         }
+    }
+    
+    for (int i = index - 1; i >= 0; i--)
+    {
+        float4 col = hitCols[i];
+        outCol = float4(col.rgb * col.a + outCol.rgb * outCol.a * (1 - col.a), 1.0f);
     }
         
     _Result[id.xy] = outCol;
