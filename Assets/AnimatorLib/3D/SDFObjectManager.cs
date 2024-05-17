@@ -101,10 +101,28 @@ public class SDFObjectManager
     private static SDFObjectManager instance = null;
 
     private SDFList<SphereData> sphereSDFs = new SDFList<SphereData>(new SphereData() { position = Vector3.zero, radius = 0 });
-    private SDFList<BoxData> boxSDFs = new SDFList<BoxData>(new BoxData() { transformationInverse = Matrix4x4.zero });
+    private SDFList<BoxData> boxSDFs = new SDFList<BoxData>(new BoxData() { scale = Vector3.zero });
 
-    private Dictionary<SDFMaterial, int> materialToIndex = new Dictionary<SDFMaterial, int>();
-    private List<SDFMaterial> sDFMaterials = new List<SDFMaterial>();
+    private Dictionary<SDFMaterial, int> materialToIndex = new Dictionary<SDFMaterial, int>()
+    {
+        { defaultMaterial, 0 },
+    };
+
+    private List<SDFMaterial> sDFMaterials = new List<SDFMaterial>()
+    {
+        defaultMaterial
+    };
+
+    private static SDFMaterial defaultMaterial = new SDFMaterial()
+    {
+        Albedo = new Color(1, 0, 1, 1),
+        Smoothness = 0.0f,
+        SpecularPower = 1.0f,
+        Ambient = new Color(),
+        AmbientStrength = 0.0f,
+        Opacity = 1.0f,
+        Lit = false,
+};
 
     private ComputeBuffer materialBuffer;
 
@@ -141,6 +159,9 @@ public class SDFObjectManager
 
     public static SDFRef Add<T>(T data, SDFMaterial material) where T : struct, SDFData
     {
+        if(material == null)
+            material = defaultMaterial;
+
         switch (data.Type)
         {
             case SDFType.SPHERE:
@@ -186,6 +207,32 @@ public class SDFObjectManager
                 {
                     BoxData boxData = (BoxData)Convert.ChangeType(data, typeof(BoxData));
                     boxData.MaterialIndex = Instance.boxSDFs[sdfRef.Index].MaterialIndex;
+                    Instance.boxSDFs[sdfRef.Index] = boxData;
+                    break;
+                }
+        }
+    }
+
+    public static void UpdateMaterial(SDFMaterial material, SDFType type, SDFRef sdfRef)
+    {
+        if (material == null)
+            material = defaultMaterial;
+
+        int materialIndex = GetMaterialIndex(material);
+
+        switch (type)
+        {
+            case SDFType.SPHERE:
+                {
+                    SphereData sphereData = Instance.sphereSDFs[sdfRef.Index];
+                    sphereData.MaterialIndex = materialIndex;
+                    Instance.sphereSDFs[sdfRef.Index] = sphereData;
+                    break;
+                }
+            case SDFType.BOX:
+                {
+                    BoxData boxData = Instance.boxSDFs[sdfRef.Index];
+                    boxData.MaterialIndex = materialIndex;
                     Instance.boxSDFs[sdfRef.Index] = boxData;
                     break;
                 }

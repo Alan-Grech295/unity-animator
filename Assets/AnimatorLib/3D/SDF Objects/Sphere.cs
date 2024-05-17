@@ -38,11 +38,7 @@ public class Sphere : MonoBehaviour
     // Start is called before the first frame update
     void OnEnable()
     {
-        sdfRef = SDFObjectManager.Add(new SphereData()
-        {
-            position = transform.position,
-            radius = radius
-        }, material);
+        sdfRef = SDFObjectManager.Add(GetSphereData(), material);
 
         pastPos = transform.position;
     }
@@ -58,21 +54,14 @@ public class Sphere : MonoBehaviour
 
         if (sdfRef == null)
         {
-            sdfRef = SDFObjectManager.Add(new SphereData()
-            {
-                position = transform.position,
-                radius = radius
-            }, material);
+            sdfRef = SDFObjectManager.Add(GetSphereData(), material);
         }
 #endif
 
         if (dirty)
         {
-            SDFObjectManager.Update(new SphereData()
-            {
-                position = transform.position,
-                radius = radius
-            }, sdfRef);
+            SDFObjectManager.Update(GetSphereData(), sdfRef);
+            SDFObjectManager.UpdateMaterial(material, SDFObjectManager.SDFType.SPHERE, sdfRef);
             Clean();
         }
     }
@@ -80,6 +69,15 @@ public class Sphere : MonoBehaviour
     private void OnDisable()
     {
         SDFObjectManager.Destroy(SDFObjectManager.SDFType.SPHERE, sdfRef);
+    }
+
+    private SphereData GetSphereData()
+    {
+        return new SphereData()
+        {
+            position = transform.position,
+            radius = radius
+        };
     }
 
     private void Clean()

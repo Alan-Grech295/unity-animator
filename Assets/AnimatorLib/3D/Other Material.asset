@@ -12,9 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 47678cdd1109ad644aa71d5742d741a7, type: 3}
   m_Name: Other Material
   m_EditorClassIdentifier: 
-  Albedo: {r: 0, g: 0, b: 0, a: 0}
+  Albedo: {r: 1, g: 0, b: 0, a: 1}
   Smoothness: 0.5
   SpecularPower: 3
   Ambient: {r: 0, g: 0, b: 0, a: 0}
   AmbientStrength: 0.2
   Opacity: 1
+  Lit: 1

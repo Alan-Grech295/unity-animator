@@ -8,6 +8,7 @@ public struct SDFMaterialData
     public Vector4 Ambient;
     public float AmbientStrength;
     public float Opacity;
+    public int Lit;
 }
 
 [CreateAssetMenu(fileName = "SDFMaterial", menuName = "SDF/SDFMaterial")]
@@ -22,6 +23,7 @@ public class SDFMaterial : ScriptableObject
     public float AmbientStrength = 0.2f;
     [Range(0, 1)]
     public float Opacity = 1.0f;
+    public bool Lit = true;
 
     public SDFMaterialData ToMaterialData()
     {
@@ -32,7 +34,8 @@ public class SDFMaterial : ScriptableObject
             SpecularPower = SpecularPower,
             Ambient = Ambient,
             AmbientStrength = AmbientStrength,
-            Opacity = Opacity
+            Opacity = Opacity,
+            Lit = Lit ? 1 : 0,
         };
     }
 }

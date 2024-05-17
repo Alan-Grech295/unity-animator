@@ -2,7 +2,9 @@ using UnityEngine;
 
 public struct BoxData : SDFData
 {
-    public Matrix4x4 transformationInverse;
+    public Vector3 position;
+    public Vector3 scale;
+    public Matrix4x4 rotationInverse;
     public int MaterialIndex;
 
     public SDFObjectManager.SDFType Type => SDFObjectManager.SDFType.BOX;
@@ -43,6 +45,7 @@ public class Box : MonoBehaviour
         if (dirty)
         {
             SDFObjectManager.Update(GetBoxData(), sdfRef);
+            SDFObjectManager.UpdateMaterial(material, SDFObjectManager.SDFType.BOX, sdfRef);
             Clean();
         }
     }
@@ -56,7 +59,9 @@ public class Box : MonoBehaviour
     {
         return new BoxData()
         {
-            transformationInverse = transform.localToWorldMatrix.inverse,
+            position = transform.position,
+            scale = transform.localScale,
+            rotationInverse = Matrix4x4.Rotate(transform.rotation).inverse,
         };
     }
 
