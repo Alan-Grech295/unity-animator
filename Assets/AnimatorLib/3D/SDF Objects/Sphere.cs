@@ -1,3 +1,4 @@
+using UnityEditor;
 using UnityEngine;
 
 public struct SphereData : SDFData
@@ -12,6 +13,19 @@ public struct SphereData : SDFData
 [ExecuteInEditMode]
 public class Sphere : MonoBehaviour
 {
+    [MenuItem("GameObject/SDF/Sphere")]
+    static void CreateBox(MenuCommand menuCommand)
+    {
+        // Create a custom game object
+        GameObject go = new GameObject("SDF Sphere");
+        go.AddComponent<Sphere>();
+        // Ensure it gets reparented if this was a context click (otherwise does nothing)
+        GameObjectUtility.SetParentAndAlign(go, menuCommand.context as GameObject);
+        // Register the creation in the undo system
+        Undo.RegisterCreatedObjectUndo(go, "Create " + go.name);
+        Selection.activeObject = go;
+    }
+
     public SDFMaterial material;
     public float Radius
     {
@@ -28,7 +42,7 @@ public class Sphere : MonoBehaviour
     }
 
     [SerializeField]
-    private float radius;
+    private float radius = 1;
 
     SDFRef sdfRef;
 

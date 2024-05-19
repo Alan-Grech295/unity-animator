@@ -11,7 +11,7 @@ public interface SDFData
 
 public class SDFObjectManager
 {
-    public enum SDFType { SPHERE, BOX }
+    public enum SDFType { SPHERE, BOX, LINE_SEGMENT }
     private class SDFList<T> where T : struct
     {
         private List<T> sdfs;
@@ -36,6 +36,14 @@ public class SDFObjectManager
             this.blankSDF = new T[] { blankSDF };
 
             ComputeHelper.CreateStructuredBuffer(ref buffer, this.blankSDF);
+        }
+
+        ~SDFList()
+        {
+            if (buffer != null)
+            {
+                buffer.Dispose();
+            }
         }
 
         public T this[int index]
@@ -102,6 +110,7 @@ public class SDFObjectManager
 
     private SDFList<SphereData> sphereSDFs = new SDFList<SphereData>(new SphereData() { position = Vector3.zero, radius = 0 });
     private SDFList<BoxData> boxSDFs = new SDFList<BoxData>(new BoxData() { scale = Vector3.zero });
+    private SDFList<LineSegmentData> lineSegmentSDFs = new SDFList<LineSegmentData>(new LineSegmentData());
 
     private Dictionary<SDFMaterial, int> materialToIndex = new Dictionary<SDFMaterial, int>()
     {
@@ -122,7 +131,7 @@ public class SDFObjectManager
         AmbientStrength = 0.0f,
         Opacity = 1.0f,
         Lit = false,
-};
+    };
 
     private ComputeBuffer materialBuffer;
 
@@ -139,6 +148,14 @@ public class SDFObjectManager
         get
         {
             return Instance.boxSDFs.Buffer;
+        }
+    }
+
+    public static ComputeBuffer SegmentBuffer
+    {
+        get
+        {
+            return Instance.lineSegmentSDFs.Buffer;
         }
     }
 
@@ -159,7 +176,7 @@ public class SDFObjectManager
 
     public static SDFRef Add<T>(T data, SDFMaterial material) where T : struct, SDFData
     {
-        if(material == null)
+        if (material == null)
             material = defaultMaterial;
 
         switch (data.Type)
@@ -175,6 +192,12 @@ public class SDFObjectManager
                     BoxData boxData = (BoxData)Convert.ChangeType(data, typeof(BoxData));
                     boxData.MaterialIndex = GetMaterialIndex(material);
                     return Instance.boxSDFs.Add(boxData);
+                }
+            case SDFType.LINE_SEGMENT:
+                {
+                    LineSegmentData segmentData = (LineSegmentData)Convert.ChangeType(data, typeof(LineSegmentData));
+                    segmentData.MaterialIndex = GetMaterialIndex(material);
+                    return Instance.lineSegmentSDFs.Add(segmentData);
                 }
         }
 
@@ -210,6 +233,13 @@ public class SDFObjectManager
                     Instance.boxSDFs[sdfRef.Index] = boxData;
                     break;
                 }
+            case SDFType.LINE_SEGMENT:
+                {
+                    LineSegmentData segmentData = (LineSegmentData)Convert.ChangeType(data, typeof(LineSegmentData));
+                    segmentData.MaterialIndex = Instance.lineSegmentSDFs[sdfRef.Index].MaterialIndex;
+                    Instance.lineSegmentSDFs[sdfRef.Index] = segmentData;
+                    break;
+                }
         }
     }
 
@@ -236,6 +266,13 @@ public class SDFObjectManager
                     Instance.boxSDFs[sdfRef.Index] = boxData;
                     break;
                 }
+            case SDFType.LINE_SEGMENT:
+                {
+                    LineSegmentData segmentData = Instance.lineSegmentSDFs[sdfRef.Index];
+                    segmentData.MaterialIndex = materialIndex;
+                    Instance.lineSegmentSDFs[sdfRef.Index] = segmentData;
+                    break;
+                }
         }
     }
 
@@ -248,6 +285,9 @@ public class SDFObjectManager
                 break;
             case SDFType.BOX:
                 Instance.boxSDFs.Remove(sdfRef.Index);
+                break;
+            case SDFType.LINE_SEGMENT:
+                Instance.lineSegmentSDFs.Remove(sdfRef.Index);
                 break;
         }
     }

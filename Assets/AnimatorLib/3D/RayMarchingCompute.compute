@@ -17,6 +17,14 @@ struct BoxData
     int materialIndex;
 };
 
+struct LineSegmentData
+{
+    float3 Start;
+    float3 End;
+    float Thickness;
+    int MaterialIndex;
+};
+
 
 struct MaterialData
 {
@@ -38,6 +46,7 @@ int _Height;
 
 RWStructuredBuffer<SphereData> _Spheres;
 RWStructuredBuffer<BoxData> _Boxes;
+RWStructuredBuffer<LineSegmentData> _LineSegments;
 RWStructuredBuffer<MaterialData> _Materials;
 
 float4x4 _CameraToWorld;
@@ -48,7 +57,7 @@ float _FarClip;
 
 #define EPSILON 0.0001f
 
-#define MIN_EPSILON EPSILON
+#define MIN_EPSILON 0.0001f
 #define MAX_EPSILON 0.01f
 
 #define INNER_STEP 0.01f
@@ -158,9 +167,6 @@ float2 SceneSDF(float3 pos)
     uint numSpheres, stride;
     _Spheres.GetDimensions(numSpheres, stride);
     
-    uint numBoxes;
-    _Boxes.GetDimensions(numBoxes, stride);
-    
     float minDist = _FarClip;
     int materialIndex = 0;
     for (int i = 0; i < numSpheres; i++)
@@ -173,6 +179,9 @@ float2 SceneSDF(float3 pos)
             materialIndex = sphere.materialIndex;
         }
     }
+    
+    uint numBoxes;
+    _Boxes.GetDimensions(numBoxes, stride);
     
     for (int i = 0; i < numBoxes; i++)
     {
@@ -188,6 +197,24 @@ float2 SceneSDF(float3 pos)
         {
             minDist = dist;
             materialIndex = box.materialIndex;
+        }
+    }
+    
+    uint numSegments;
+    _LineSegments.GetDimensions(numSegments, stride);
+    
+    for (int i = 0; i < numSegments; i++)
+    {
+        LineSegmentData segment = _LineSegments[i];
+        
+        if (segment.Thickness == 0)
+            continue;
+        
+        float dist = SegmentSDF(segment.Start, segment.End, pos.xyz, segment.Thickness);
+        if ((dist > -EPSILON || minDist == _FarClip) && dist < minDist)
+        {
+            minDist = dist;
+            materialIndex = segment.MaterialIndex;
         }
     }
     
@@ -258,7 +285,7 @@ void Main(uint3 id : SV_DispatchThreadID)
             }
         }
         
-        curDist += abs(sceneData.x) > EPSILON ? abs(sceneData.x) : INNER_STEP;
+        curDist += abs(sceneData.x) >= EPSILON ? abs(sceneData.x) : INNER_STEP;
         
         if (curDist >= maxDist)
         {
@@ -271,6 +298,6 @@ void Main(uint3 id : SV_DispatchThreadID)
         float4 col = hitCols[i];
         outCol = float4(col.rgb * col.a + outCol.rgb * outCol.a * (1 - col.a), 1.0f);
     }
-        
+    
     _Result[id.xy] = outCol;
 }
