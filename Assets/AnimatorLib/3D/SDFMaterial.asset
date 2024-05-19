@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: SDFMaterial
   m_EditorClassIdentifier: 
   Albedo: {r: 1, g: 0, b: 0, a: 0}
-  Smoothness: 0
+  Smoothness: 1
   SpecularPower: 3
   Ambient: {r: 0.504717, g: 0.828292, b: 1, a: 0}
   AmbientStrength: 0.104
   Opacity: 0.348
-  Lit: 0
+  Lit: 1

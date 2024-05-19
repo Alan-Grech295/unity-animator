@@ -112,6 +112,8 @@ public class SDFObjectManager
     private SDFList<BoxData> boxSDFs = new SDFList<BoxData>(new BoxData() { scale = Vector3.zero });
     private SDFList<LineSegmentData> lineSegmentSDFs = new SDFList<LineSegmentData>(new LineSegmentData());
 
+    private SDFList<SDFLightData> lights = new SDFList<SDFLightData>(new SDFLightData());
+
     private Dictionary<SDFMaterial, int> materialToIndex = new Dictionary<SDFMaterial, int>()
     {
         { defaultMaterial, 0 },
@@ -156,6 +158,14 @@ public class SDFObjectManager
         get
         {
             return Instance.lineSegmentSDFs.Buffer;
+        }
+    }
+
+    public static ComputeBuffer LightBuffer
+    {
+        get
+        {
+            return Instance.lights.Buffer;
         }
     }
 
@@ -274,6 +284,21 @@ public class SDFObjectManager
                     break;
                 }
         }
+    }
+
+    public static SDFRef AddLight(SDFLightData data)
+    {
+        return Instance.lights.Add(data);
+    }
+
+    public static void UpdateLight(SDFLightData data, SDFRef sdfRef)
+    {
+        Instance.lights[sdfRef.Index] = data;
+    }
+
+    public static void DestroyLight(SDFRef sdfRef)
+    {
+        Instance.lights.Remove(sdfRef.Index);
     }
 
     public static void Destroy(SDFType type, SDFRef sdfRef)

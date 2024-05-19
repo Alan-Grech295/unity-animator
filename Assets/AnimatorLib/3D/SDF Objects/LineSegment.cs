@@ -114,6 +114,16 @@ public class LineSegment : MonoBehaviour
         {
             sdfRef = SDFObjectManager.Add(GetSegmentData(), material);
         }
+
+        if (startTransform == null)
+        {
+            startTransform = transform.GetChild(0);
+        }
+
+        if (endTransform == null)
+        {
+            endTransform = transform.GetChild(1);
+        }
 #endif
 
         if (dirty)

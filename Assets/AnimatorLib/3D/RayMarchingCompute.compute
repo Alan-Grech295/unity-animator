@@ -25,6 +25,15 @@ struct LineSegmentData
     int MaterialIndex;
 };
 
+struct LightData
+{
+    float3 Position;
+    float3 Direction;
+    float4 Color;
+    float Intensity;
+    int Type;
+};
+
 
 struct MaterialData
 {
@@ -47,6 +56,7 @@ int _Height;
 RWStructuredBuffer<SphereData> _Spheres;
 RWStructuredBuffer<BoxData> _Boxes;
 RWStructuredBuffer<LineSegmentData> _LineSegments;
+RWStructuredBuffer<LightData> _Lights;
 RWStructuredBuffer<MaterialData> _Materials;
 
 float4x4 _CameraToWorld;
@@ -237,13 +247,44 @@ float4 GetColor(float3 pos, float3 rayDir, int materialIndex)
     MaterialData material = _Materials[materialIndex];
     float3 normal = SceneNormal(pos);
     
-    float3 lightDir = float3(0, 1, 0);
+    uint numLights, stride;
+    _Lights.GetDimensions(numLights, stride);
     
-    float diffuse = material.Lit ? saturate(dot(normal, lightDir)) : 1;
+    float3 finalCol = 0;
+    
+    for (int i = 0; i < numLights; i++)
+    {
+        LightData light = _Lights[i];
+        if (light.Intensity == 0)
+            continue;
+        
+        float diffuseIntensity, specularIntensity;
+        
+        float lightIntensity = light.Intensity;
+        float3 lightDir = light.Direction;
+                
+        switch (light.Type)
+        {
+            // Directional Light
+            case 0:
+                break;
+            // Point Light
+            case 1:
+                lightIntensity /= SqrLength(pos - light.Position);
+                lightDir = normalize(light.Position - pos);
+                break;
+        }
+        
+        lightIntensity = material.Lit ? lightIntensity : 1;
+        
+        diffuseIntensity = material.Lit ? saturate(dot(normal, lightDir)) : 1;
             
-    float specular = pow(saturate(dot(reflect(lightDir, normal), rayDir)), material.SpecularPower);
+        specularIntensity = pow(saturate(dot(reflect(lightDir, normal), rayDir)), material.SpecularPower);
+    
+        finalCol += (material.Albedo * light.Color * diffuseIntensity + light.Color * specularIntensity * material.Smoothness) * lightIntensity + material.Ambient * material.AmbientStrength;
+    }
             
-    return float4((material.Albedo * diffuse + specular * material.Smoothness + material.Ambient * material.AmbientStrength).xyz, material.Opacity);
+    return float4(finalCol, material.Opacity);
 }
 
 [numthreads(8,8,1)]
