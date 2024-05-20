@@ -151,6 +151,7 @@ public class AnimatorManager : MonoBehaviour
 
     public static Func<float, float> LINEAR = (t) => t;
     public static Func<float, float> EASE_IN_OUT_CUBIC = (t) => t > 0.5f ? 4 * t * t * t : 1 - Mathf.Pow(-2f * t + 2, 3) / 2f;
+    public static Func<float, float> EASE_OUT_EXPO = (t) => t == 1 ? 1 : 1 - Mathf.Pow(2, -10 * t);
     public static Func<float, float> EASE_OUT_BOUNCE = (t) =>
     {
         const float n1 = 7.5625f;
@@ -173,6 +174,8 @@ public class AnimatorManager : MonoBehaviour
             return n1 * (t -= 2.625f / d1) * t + 0.984375f;
         }
     };
+
+    public static Func<float, float, float, float> FLOAT_LERP = (s, e, t) => Mathf.Lerp(s, e, t);
 
     private float AnimTime
     {

@@ -78,7 +78,7 @@ public class HeightmapGenerator : MonoBehaviour
     {
         var (verts, uvs, tris) = GeneratePlaneVertices(size);
 
-        renderer.material.SetInt("_ShowRaw", 1);
+        renderer.material.SetFloat("_ShowRaw", 1);
         renderer.material.SetTexture("_Texture", null);
 
         mesh = new Mesh();
@@ -122,7 +122,9 @@ public class HeightmapGenerator : MonoBehaviour
 
     public void ShowColorTexture()
     {
-        renderer.material.SetInt("_ShowRaw", 0);
+        AnimatorManager.AnimateValue((v) => renderer.material.SetFloat("_ShowRaw", v), 1, 0, 0.5f, 0,
+                                     AnimatorManager.FLOAT_LERP, AnimatorManager.EASE_OUT_EXPO);
+
     }
 
     public void HeightmapMesh()
@@ -143,10 +145,7 @@ public class HeightmapGenerator : MonoBehaviour
             mesh.vertices = verts;
             mesh.RecalculateNormals();
         },
-        0, height, 1, 0, (start, end, t) =>
-        {
-            return Mathf.Lerp(start, end, t);
-        },
+        0, height, 1, 0, AnimatorManager.FLOAT_LERP,
         AnimatorManager.EASE_IN_OUT_CUBIC);
     }
 
