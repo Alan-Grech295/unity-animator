@@ -16,6 +16,6 @@ MonoBehaviour:
   Smoothness: 1
   SpecularPower: 3
   Ambient: {r: 0.504717, g: 0.828292, b: 1, a: 0}
-  AmbientStrength: 0.104
-  Opacity: 0.348
+  AmbientStrength: 0.1
+  Opacity: 1
   Lit: 1

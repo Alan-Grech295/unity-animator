@@ -10,17 +10,19 @@ public class RayMarching : ScriptableRendererFeature
         string kernelName;
         int renderTargetID;
         int depthTargetID;
+        int MSAA;
 
         RenderTargetIdentifier renderTargetIdentifier;
         RenderTargetIdentifier depthTargetIdentifier;
         int renderTextureWidth, renderTextureHeight;
 
-        public RayMarchingPass(ComputeShader rayMarchingCompute, string kernelName, int renderTargetID, int depthTargetID)
+        public RayMarchingPass(ComputeShader rayMarchingCompute, string kernelName, int renderTargetID, int depthTargetID, int MSAA)
         {
             this.rayMarchingCompute = rayMarchingCompute;
             this.kernelName = kernelName;
             this.renderTargetID = renderTargetID;
             this.depthTargetID = depthTargetID;
+            this.MSAA = MSAA;
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -63,6 +65,7 @@ public class RayMarching : ScriptableRendererFeature
 
             cmd.SetComputeIntParam(rayMarchingCompute, "_Width", renderTextureWidth);
             cmd.SetComputeIntParam(rayMarchingCompute, "_Height", renderTextureHeight);
+            cmd.SetComputeIntParam(rayMarchingCompute, "_MSAA", MSAA);
 
             cmd.SetComputeFloatParam(rayMarchingCompute, "_NearClip", renderingData.cameraData.camera.nearClipPlane);
             cmd.SetComputeFloatParam(rayMarchingCompute, "_FarClip", renderingData.cameraData.camera.farClipPlane);
@@ -94,6 +97,7 @@ public class RayMarching : ScriptableRendererFeature
 
     public ComputeShader rayMarchingCompute;
     public string kernelName = "main";
+    public int MSAA = 2;
 
     public override void Create()
     {
@@ -105,7 +109,7 @@ public class RayMarching : ScriptableRendererFeature
 
         int renderTargetId = Shader.PropertyToID("_Result");
         int depthTargetId = Shader.PropertyToID("_Depth");
-        rayMarchingPass = new RayMarchingPass(rayMarchingCompute, kernelName, renderTargetId, depthTargetId);
+        rayMarchingPass = new RayMarchingPass(rayMarchingCompute, kernelName, renderTargetId, depthTargetId, MSAA);
         rayMarchingPass.renderPassEvent = RenderPassEvent.AfterRendering;
         initialized = true;
     }

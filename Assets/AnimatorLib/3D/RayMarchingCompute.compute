@@ -52,6 +52,7 @@ RWTexture2D<float4> _Result;
 RWTexture2D<float> _Depth;
 int _Width;
 int _Height;
+int _MSAA;
 
 RWStructuredBuffer<SphereData> _Spheres;
 RWStructuredBuffer<BoxData> _Boxes;
@@ -65,7 +66,7 @@ float4x4 _CameraInverseProjection;
 float _NearClip;
 float _FarClip;
 
-#define EPSILON 0.0001f
+#define EPSILON 0.0005f
 
 #define MIN_EPSILON 0.0001f
 #define MAX_EPSILON 0.01f
@@ -287,23 +288,17 @@ float4 GetColor(float3 pos, float3 rayDir, int materialIndex)
     return float4(finalCol, material.Opacity);
 }
 
-[numthreads(8,8,1)]
-void Main(uint3 id : SV_DispatchThreadID)
+float4 RayMarch(float2 uv)
 {
-    if(id.x >= _Width || id.y >= _Height)
-        return;
-    
-    // Transform pixel to [-1,1] range
-    float2 uv = float2((id.xy + float2(0.5f, 0.5f)) / float2(_Width, _Height) * 2.0f - 1.0f);
-
     // Get a ray for the UVs
     Ray ray = CreateCameraRay(uv);
+    float2 texCoord = (uv + 1.0f) / 2.0f * float2(_Width, _Height);
     
-    float maxDist = Linear01Depth(_Depth[id.xy]) * (_FarClip - _NearClip);
+    float maxDist = Linear01Depth(_Depth[texCoord]) * (_FarClip - _NearClip);
     
     float curDist = 0;
     
-    float4 outCol = _Result[id.xy];
+    float4 outCol = _Result[texCoord];
     
     float4 hitCols[MAX_TRANSPARENT_INTERSECTIONS];
     int index = 0;
@@ -314,7 +309,7 @@ void Main(uint3 id : SV_DispatchThreadID)
         float2 sceneData = SceneSDF(pt);
         
         if (abs(sceneData.x) <= EPSILON)
-        {            
+        {
             float4 col = GetColor(pt, ray.direction, (int) sceneData.y);
             if (col.a > 0)
             {
@@ -340,5 +335,30 @@ void Main(uint3 id : SV_DispatchThreadID)
         outCol = float4(col.rgb * col.a + outCol.rgb * outCol.a * (1 - col.a), 1.0f);
     }
     
-    _Result[id.xy] = outCol;
+    return outCol;
+}
+
+[numthreads(8,8,1)]
+void Main(uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= _Width || id.y >= _Height)
+        return;
+    
+    // Transform pixel to [-1,1] range
+    
+    float2 minUV = float2(id.xy / float2(_Width, _Height) * 2.0f - 1.0f);
+    float2 maxUV = float2((id.xy + 1.0f) / float2(_Width, _Height) * 2.0f - 1.0f);
+    
+    float4 outCol = 0;
+    
+    for (int x = 0; x < _MSAA; x++)
+    {
+        for (int y = 0; y < _MSAA; y++)
+        {
+            outCol += RayMarch(lerp(minUV, maxUV, float2((float) x / _MSAA, (float) y / _MSAA)));
+
+        }
+    }
+    
+    _Result[id.xy] = outCol / (float)(_MSAA * _MSAA);
 }
