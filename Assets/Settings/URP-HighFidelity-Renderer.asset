@@ -92,7 +92,7 @@ MonoBehaviour:
     failOperation: 0
     zFailOperation: 0
   m_ShadowTransparentReceive: 1
-  m_RenderingMode: 0
+  m_RenderingMode: 1
   m_DepthPrimingMode: 0
   m_CopyDepthMode: 0
   m_AccurateGbufferNormals: 1
@@ -112,4 +112,4 @@ MonoBehaviour:
   m_Active: 1
   rayMarchingCompute: {fileID: 7200000, guid: 152297c3eac48564a95f21f4dfe30046, type: 3}
   kernelName: Main
-  MSAA: 1
+  MSAA: 3

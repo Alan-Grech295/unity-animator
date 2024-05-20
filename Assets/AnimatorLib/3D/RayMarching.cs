@@ -28,14 +28,16 @@ public class RayMarching : ScriptableRendererFeature
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
             var cameraTargetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
-            cameraTargetDescriptor.enableRandomWrite = true;
-            cmd.GetTemporaryRT(renderTargetID, cameraTargetDescriptor);
+            RenderTextureDescriptor descriptor = new RenderTextureDescriptor(cameraTargetDescriptor.width, cameraTargetDescriptor.height, cameraTargetDescriptor.colorFormat);
+            descriptor.enableRandomWrite = true;
+            descriptor.bindMS = false;
+            cmd.GetTemporaryRT(renderTargetID, descriptor);
             renderTargetIdentifier = new RenderTargetIdentifier(renderTargetID);
 
-            RenderTextureDescriptor descriptor = new RenderTextureDescriptor(cameraTargetDescriptor.width, cameraTargetDescriptor.height, RenderTextureFormat.RFloat, 32, 0, RenderTextureReadWrite.Default);
-            descriptor.enableRandomWrite = true;
+            RenderTextureDescriptor depthDescriptor = new RenderTextureDescriptor(cameraTargetDescriptor.width, cameraTargetDescriptor.height, RenderTextureFormat.RFloat, 32, 0, RenderTextureReadWrite.Default);
+            depthDescriptor.enableRandomWrite = true;
 
-            cmd.GetTemporaryRT(depthTargetID, descriptor);
+            cmd.GetTemporaryRT(depthTargetID, depthDescriptor);
             depthTargetIdentifier = new RenderTargetIdentifier(depthTargetID);
 
             renderTextureWidth = cameraTargetDescriptor.width;
