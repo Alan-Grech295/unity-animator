@@ -12,7 +12,7 @@ public interface SDFData
 public class SDFObjectManager
 {
     public enum SDFType { SPHERE, BOX, LINE_SEGMENT }
-    private class SDFList<T> where T : struct
+    public class SDFList<T> where T : struct
     {
         private List<T> sdfs;
         private List<SDFRef> refs;
@@ -57,6 +57,14 @@ public class SDFObjectManager
             {
                 sdfs[index] = value;
                 UpdateBuffer();
+            }
+        }
+
+        public int Count
+        {
+            get
+            {
+                return sdfs.Count;
             }
         }
 
@@ -166,6 +174,38 @@ public class SDFObjectManager
         get
         {
             return Instance.lights.Buffer;
+        }
+    }
+
+    public static SDFList<SphereData> Spheres
+    {
+        get
+        {
+            return Instance.sphereSDFs;
+        }
+    }
+
+    public static SDFList<BoxData> Boxes
+    {
+        get
+        {
+            return Instance.boxSDFs;
+        }
+    }
+
+    public static SDFList<LineSegmentData> Segments
+    {
+        get
+        {
+            return Instance.lineSegmentSDFs;
+        }
+    }
+
+    public static SDFList<SDFLightData> Lights
+    {
+        get
+        {
+            return Instance.lights;
         }
     }
 

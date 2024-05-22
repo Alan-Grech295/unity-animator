@@ -55,9 +55,13 @@ int _Height;
 int _MSAA;
 
 RWStructuredBuffer<SphereData> _Spheres;
+int _NumSpheres;
 RWStructuredBuffer<BoxData> _Boxes;
+int _NumBoxes;
 RWStructuredBuffer<LineSegmentData> _LineSegments;
+int _NumLineSegments;
 RWStructuredBuffer<LightData> _Lights;
+int _NumLights;
 RWStructuredBuffer<MaterialData> _Materials;
 
 float4x4 _CameraToWorld;
@@ -174,13 +178,10 @@ float SqrLength(float3 x)
 }
 
 float2 SceneSDF(float3 pos)
-{
-    uint numSpheres, stride;
-    _Spheres.GetDimensions(numSpheres, stride);
-    
+{    
     float minDist = _FarClip;
     int materialIndex = 0;
-    for (int i = 0; i < numSpheres; i++)
+    for (int i = 0; i < _NumSpheres; i++)
     {
         SphereData sphere = _Spheres[i];
         float dist = SphereSDF(sphere.position, pos, sphere.radius);
@@ -191,10 +192,7 @@ float2 SceneSDF(float3 pos)
         }
     }
     
-    uint numBoxes;
-    _Boxes.GetDimensions(numBoxes, stride);
-    
-    for (int i = 0; i < numBoxes; i++)
+    for (int i = 0; i < _NumBoxes; i++)
     {
         BoxData box = _Boxes[i];
         
@@ -211,10 +209,7 @@ float2 SceneSDF(float3 pos)
         }
     }
     
-    uint numSegments;
-    _LineSegments.GetDimensions(numSegments, stride);
-    
-    for (int i = 0; i < numSegments; i++)
+    for (int i = 0; i < _NumLineSegments; i++)
     {
         LineSegmentData segment = _LineSegments[i];
         
@@ -248,12 +243,9 @@ float4 GetColor(float3 pos, float3 rayDir, int materialIndex)
     MaterialData material = _Materials[materialIndex];
     float3 normal = SceneNormal(pos);
     
-    uint numLights, stride;
-    _Lights.GetDimensions(numLights, stride);
-    
     float3 finalCol = 0;
     
-    for (int i = 0; i < numLights; i++)
+    for (int i = 0; i < _NumLights; i++)
     {
         LightData light = _Lights[i];
         if (light.Intensity == 0)

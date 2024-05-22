@@ -28,10 +28,8 @@ public class RayMarching : ScriptableRendererFeature
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
             var cameraTargetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
-            RenderTextureDescriptor descriptor = new RenderTextureDescriptor(cameraTargetDescriptor.width, cameraTargetDescriptor.height, cameraTargetDescriptor.colorFormat);
-            descriptor.enableRandomWrite = true;
-            descriptor.bindMS = false;
-            cmd.GetTemporaryRT(renderTargetID, descriptor);
+            cameraTargetDescriptor.enableRandomWrite = true;
+            cmd.GetTemporaryRT(renderTargetID, cameraTargetDescriptor);
             renderTargetIdentifier = new RenderTargetIdentifier(renderTargetID);
 
             RenderTextureDescriptor depthDescriptor = new RenderTextureDescriptor(cameraTargetDescriptor.width, cameraTargetDescriptor.height, RenderTextureFormat.RFloat, 32, 0, RenderTextureReadWrite.Default);
@@ -59,10 +57,14 @@ public class RayMarching : ScriptableRendererFeature
             cmd.SetComputeTextureParam(rayMarchingCompute, mainKernel, depthTargetID, depthTargetIdentifier);
 
             cmd.SetComputeBufferParam(rayMarchingCompute, mainKernel, "_Spheres", SDFObjectManager.SphereBuffer);
+            cmd.SetComputeIntParam(rayMarchingCompute, "_NumSpheres", SDFObjectManager.Spheres.Count);
             cmd.SetComputeBufferParam(rayMarchingCompute, mainKernel, "_Boxes", SDFObjectManager.BoxBuffer);
+            cmd.SetComputeIntParam(rayMarchingCompute, "_NumBoxes", SDFObjectManager.Boxes.Count);
             cmd.SetComputeBufferParam(rayMarchingCompute, mainKernel, "_LineSegments", SDFObjectManager.SegmentBuffer);
+            cmd.SetComputeIntParam(rayMarchingCompute, "_NumLineSegments", SDFObjectManager.Segments.Count);
 
             cmd.SetComputeBufferParam(rayMarchingCompute, mainKernel, "_Lights", SDFObjectManager.LightBuffer);
+            cmd.SetComputeIntParam(rayMarchingCompute, "_NumLights", SDFObjectManager.Lights.Count);
             cmd.SetComputeBufferParam(rayMarchingCompute, mainKernel, "_Materials", SDFObjectManager.MaterialBuffer);
 
             cmd.SetComputeIntParam(rayMarchingCompute, "_Width", renderTextureWidth);

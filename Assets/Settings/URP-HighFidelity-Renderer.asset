@@ -112,4 +112,4 @@ MonoBehaviour:
   m_Active: 1
   rayMarchingCompute: {fileID: 7200000, guid: 152297c3eac48564a95f21f4dfe30046, type: 3}
   kernelName: Main
-  MSAA: 3
+  MSAA: 1
