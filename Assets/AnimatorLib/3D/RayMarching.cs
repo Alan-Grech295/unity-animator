@@ -69,12 +69,14 @@ public class RayMarching : ScriptableRendererFeature
 
             cmd.SetComputeIntParam(rayMarchingCompute, "_Width", renderTextureWidth);
             cmd.SetComputeIntParam(rayMarchingCompute, "_Height", renderTextureHeight);
-            cmd.SetComputeIntParam(rayMarchingCompute, "_MSAA", MSAA);
+            cmd.SetComputeIntParam(rayMarchingCompute, "_MSAA", renderingData.cameraData.isSceneViewCamera ? 1 : MSAA);
 
             cmd.SetComputeFloatParam(rayMarchingCompute, "_NearClip", renderingData.cameraData.camera.nearClipPlane);
             cmd.SetComputeFloatParam(rayMarchingCompute, "_FarClip", renderingData.cameraData.camera.farClipPlane);
             cmd.SetComputeMatrixParam(rayMarchingCompute, "_CameraToWorld", renderingData.cameraData.camera.cameraToWorldMatrix);
+            cmd.SetComputeMatrixParam(rayMarchingCompute, "_WorldToCamera", renderingData.cameraData.camera.worldToCameraMatrix);
             cmd.SetComputeMatrixParam(rayMarchingCompute, "_CameraInverseProjection", renderingData.cameraData.camera.projectionMatrix.inverse);
+            cmd.SetComputeMatrixParam(rayMarchingCompute, "_CameraProjection", renderingData.cameraData.camera.projectionMatrix);
 
             cmd.DispatchCompute(rayMarchingCompute, mainKernel,
                 Mathf.CeilToInt((float)renderTextureWidth / xGroupSize),

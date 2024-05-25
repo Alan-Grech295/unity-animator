@@ -22,6 +22,7 @@ struct LineSegmentData
     float3 Start;
     float3 End;
     float Thickness;
+    bool PerspectiveThickness;
     int MaterialIndex;
 };
 
@@ -65,7 +66,9 @@ int _NumLights;
 RWStructuredBuffer<MaterialData> _Materials;
 
 float4x4 _CameraToWorld;
+float4x4 _WorldToCamera;
 float4x4 _CameraInverseProjection;
+float4x4 _CameraProjection;
 
 float _NearClip;
 float _FarClip;
@@ -154,14 +157,30 @@ float SmoothMin(float a, float b, float k)
     return min(a, b) - h * h * h * k * 1 / 6.0f;
 }
 
-float SegmentSDF(float3 a, float3 b, float3 pos, float thickness)
+float2 ToCameraUV(float3 pos)
+{
+    float4 worldToCamera = mul(_WorldToCamera, float4(pos, 1.0f));
+        
+    float4 ndcPos = mul(_CameraProjection, worldToCamera);
+        
+    ndcPos.xyz /= ndcPos.w;
+    
+    float u = (ndcPos.x + 1.0) * 0.5;
+    float v = (1.0 - (ndcPos.y + 1.0) * 0.5);
+
+    return float2(u, v);
+}
+
+float SegmentSDF(float3 a, float3 b, float3 pos, float thickness, bool perspective = true)
 {
     float3 ab = b - a;
     float3 ap = pos - a;
     
     float t = saturate(dot(ap, ab) / dot(ab, ab));
+    
+    float3 newPos = a + t * ab;
    
-    return length(pos - (a + t * ab)) - thickness;
+    return length(pos - newPos) - thickness;
 }
 
 float LinearDepth(float depth)
@@ -216,7 +235,7 @@ float2 SceneSDF(float3 pos)
         if (segment.Thickness == 0)
             continue;
         
-        float dist = SegmentSDF(segment.Start, segment.End, pos.xyz, segment.Thickness);
+        float dist = SegmentSDF(segment.Start, segment.End, pos.xyz, segment.Thickness, segment.PerspectiveThickness);
         if ((dist > -EPSILON || minDist == _FarClip) && dist < minDist)
         {
             minDist = dist;
@@ -351,6 +370,9 @@ void Main(uint3 id : SV_DispatchThreadID)
 
         }
     }
+    
+    Ray ray = CreateCameraRay(lerp(minUV, maxUV, 0.5f));
+    
     
     _Result[id.xy] = outCol / (float)(_MSAA * _MSAA);
 }

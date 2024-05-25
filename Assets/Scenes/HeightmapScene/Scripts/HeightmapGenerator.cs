@@ -13,8 +13,9 @@ public class HeightmapGenerator : MonoBehaviour
     public int octaves;
     public float gain;
     public float lacunarity;
+    public Vector2 offset;
 
-    public bool run = false;
+    public bool generateMesh = false;
 
     MeshFilter filter;
     MeshRenderer renderer;
@@ -29,11 +30,37 @@ public class HeightmapGenerator : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //if (run)
-        //{
-        //    CreateMesh(size, height, scale, octaves, gain, lacunarity);
-        //    run = false;
-        //}
+        if (generateMesh)
+        {
+            GenerateMesh();
+        }
+    }
+
+    public void GenerateMesh()
+    {
+        var (verts, uvs, tris) = GeneratePlaneVertices(size);
+
+        float[,] heightMap = GenerateHeightmap(size + 1, 1, scale, octaves, gain, lacunarity, offset);
+
+        for (int y = 0, i = 0; y < size + 1; y++)
+        {
+            for (int x = 0; x < size + 1; x++, i++)
+            {
+                verts[i].y = heightMap[x, y] * height;
+            }
+        }
+
+        mesh = new Mesh();
+        mesh.vertices = verts;
+        mesh.uv = uvs;
+        mesh.triangles = tris;
+        mesh.RecalculateNormals();
+
+        filter.sharedMesh = mesh;
+
+        CreateTexture();
+
+        renderer.material.SetFloat("_ShowRaw", 0);
     }
 
     (Vector3[], Vector2[], int[]) GeneratePlaneVertices(int size)
@@ -100,7 +127,7 @@ public class HeightmapGenerator : MonoBehaviour
 
     public void CreateTexture()
     {
-        float[,] heightMap = GenerateHeightmap(size + 1, 1, scale, octaves, gain, lacunarity);
+        float[,] heightMap = GenerateHeightmap(size + 1, 1, scale, octaves, gain, lacunarity, offset);
 
         int texSize = size / textureDownsample;
 
@@ -129,7 +156,7 @@ public class HeightmapGenerator : MonoBehaviour
 
     public void HeightmapMesh()
     {
-        float[,] heightMap = GenerateHeightmap(size + 1, 1, scale, octaves, gain, lacunarity);
+        float[,] heightMap = GenerateHeightmap(size + 1, 1, scale, octaves, gain, lacunarity, offset);
 
         AnimatorManager.AnimateValue((h) =>
         {
@@ -153,7 +180,7 @@ public class HeightmapGenerator : MonoBehaviour
     {
         var (verts, uvs, tris) = GeneratePlaneVertices(size);
 
-        float[,] heightMap = GenerateHeightmap(size + 1, 1, scale, octaves, gain, lacunarity);
+        float[,] heightMap = GenerateHeightmap(size + 1, 1, scale, octaves, gain, lacunarity, offset);
 
         int texSize = size / textureDownsample;
 
@@ -201,7 +228,7 @@ public class HeightmapGenerator : MonoBehaviour
         filter.mesh = mesh;
     }
 
-    float[,] GenerateHeightmap(int size, float height, float scale, int octaves, float gain, float lacunarity)
+    float[,] GenerateHeightmap(int size, float height, float scale, int octaves, float gain, float lacunarity, Vector2 offset)
     {
         float[,] heightMap = new float[size, size];
         float min = float.MaxValue;
@@ -215,7 +242,7 @@ public class HeightmapGenerator : MonoBehaviour
                 float amplitude = 1;
                 for (int i = 0; i < octaves; i++)
                 {
-                    heightMap[x, y] += Mathf.PerlinNoise(x * scale * frequency, y * scale * frequency) * amplitude;
+                    heightMap[x, y] += Mathf.PerlinNoise((x + offset.x) * scale * frequency, (y + offset.y) * scale * frequency) * amplitude;
                     frequency *= lacunarity;
                     amplitude *= gain;
                 }

@@ -6,6 +6,7 @@ public struct LineSegmentData : SDFData
     public Vector3 Start;
     public Vector3 End;
     public float Thickness;
+    public int PerspectiveThickness;
     public int MaterialIndex;
 
     public SDFObjectManager.SDFType Type => SDFObjectManager.SDFType.LINE_SEGMENT;
@@ -38,6 +39,10 @@ public class LineSegment : MonoBehaviour
     }
 
     public SDFMaterial material;
+
+    [SerializeField]
+    private bool perspectiveThickness;
+
     public float Thickness
     {
         get
@@ -61,6 +66,8 @@ public class LineSegment : MonoBehaviour
 
         set
         {
+            if(startTransform != null)
+                startTransform.position = value;
             start = value;
             dirty = true;
         }
@@ -75,6 +82,8 @@ public class LineSegment : MonoBehaviour
 
         set
         {
+            if(endTransform != null)
+                endTransform.position = value;
             end = value;
             dirty = true;
         }
@@ -118,12 +127,18 @@ public class LineSegment : MonoBehaviour
         if (startTransform == null)
         {
             startTransform = transform.GetChild(0);
+            startTransform.position = start;
         }
+
+        start = startTransform.position;
 
         if (endTransform == null)
         {
             endTransform = transform.GetChild(1);
+            endTransform.position = end;
         }
+
+        end = endTransform.position;
 #endif
 
         if (dirty)
@@ -143,8 +158,9 @@ public class LineSegment : MonoBehaviour
     {
         return new LineSegmentData()
         {
-            Start = startTransform != null ? startTransform.position : Vector3.zero,
-            End = endTransform != null ? endTransform.position : Vector3.zero,
+            Start = start,
+            End = end,
+            PerspectiveThickness = perspectiveThickness ? 1 : 0,
             Thickness = Mathf.Abs(thickness),
         };
     }

@@ -538,6 +538,8 @@ GameObject:
   - component: {fileID: 1331774730}
   - component: {fileID: 1331774729}
   - component: {fileID: 1331774728}
+  - component: {fileID: 1331774733}
+  - component: {fileID: 1331774732}
   m_Layer: 0
   m_Name: Mesh
   m_TagString: Untagged
@@ -631,6 +633,115 @@ Transform:
   - {fileID: 556220886}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1331774732
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1331774727}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e52de21a22b6dd44c9cc19f810c65059, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Events:
+    m_Signals:
+    - {fileID: 11400000, guid: 6c59438fc6cc2354da9f7b6142260071, type: 2}
+    - {fileID: 11400000, guid: fa0d3e1e447d8624881c458985fa734d, type: 2}
+    - {fileID: 11400000, guid: 52cc3c499baba544e865e7a6da1d7cd1, type: 2}
+    - {fileID: 11400000, guid: 2d68181c4a7c1e74eb1140d73c062eac, type: 2}
+    - {fileID: 11400000, guid: fed661540882d7441aa011be628ed412, type: 2}
+    m_Events:
+    - m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 1331774730}
+          m_TargetAssemblyTypeName: HeightmapGenerator, Assembly-CSharp
+          m_MethodName: CreatePlane
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+    - m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 1331774730}
+          m_TargetAssemblyTypeName: HeightmapGenerator, Assembly-CSharp
+          m_MethodName: CreatePlane
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+    - m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 1331774730}
+          m_TargetAssemblyTypeName: HeightmapGenerator, Assembly-CSharp
+          m_MethodName: CreateTexture
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+    - m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 1331774730}
+          m_TargetAssemblyTypeName: HeightmapGenerator, Assembly-CSharp
+          m_MethodName: HeightmapMesh
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+    - m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 1331774730}
+          m_TargetAssemblyTypeName: HeightmapGenerator, Assembly-CSharp
+          m_MethodName: ShowColorTexture
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+--- !u!320 &1331774733
+PlayableDirector:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1331774727}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_PlayableAsset: {fileID: 11400000, guid: ebafda6de4625b041967954514db6af1, type: 2}
+  m_InitialState: 1
+  m_WrapMode: 2
+  m_DirectorUpdateMode: 1
+  m_InitialTime: 0
+  m_SceneBindings:
+  - key: {fileID: -6558417284715689875, guid: ebafda6de4625b041967954514db6af1, type: 2}
+    value: {fileID: 1331774732}
+  m_ExposedReferences:
+    m_References: []
 --- !u!1 &1653191848
 GameObject:
   m_ObjectHideFlags: 0
@@ -661,71 +772,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   reset: 0
-  Events:
-  - StartTime: 0
-    EventFunction:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 1331774730}
-          m_TargetAssemblyTypeName: HeightmapGenerator, Assembly-CSharp
-          m_MethodName: CreatePlane
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
-  - StartTime: 6
-    EventFunction:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 1331774730}
-          m_TargetAssemblyTypeName: HeightmapGenerator, Assembly-CSharp
-          m_MethodName: CreateTexture
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
-  - StartTime: 9
-    EventFunction:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 1331774730}
-          m_TargetAssemblyTypeName: HeightmapGenerator, Assembly-CSharp
-          m_MethodName: HeightmapMesh
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
-  - StartTime: 11
-    EventFunction:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 1331774730}
-          m_TargetAssemblyTypeName: HeightmapGenerator, Assembly-CSharp
-          m_MethodName: ShowColorTexture
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
+  Events: []
 --- !u!4 &1653191850
 Transform:
   m_ObjectHideFlags: 0
