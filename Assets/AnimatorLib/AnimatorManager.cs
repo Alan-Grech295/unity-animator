@@ -10,6 +10,7 @@ public class AnimatorManager : MonoBehaviour
     {
         public float StartTime;
         public float Duration;
+        public Action OnEnd;
 
         public float EndTime
         {
@@ -219,7 +220,7 @@ public class AnimatorManager : MonoBehaviour
 
         while (animations.Count > 0 && AnimTime >= animations.Top.EndTime)
         {
-            animations.Pop();
+            animations.Pop().OnEnd?.Invoke();
         }
     }
 
@@ -230,7 +231,7 @@ public class AnimatorManager : MonoBehaviour
         animations.Reset();
     }
 
-    public static void AnimateValue(Action<float> setter, float start, float end, float duration, float delay, Func<float, float, float, float> function, Func<float, float> easeFunction)
+    public static void AnimateValue(Action<float> setter, float start, float end, float duration, float delay, Func<float, float, float, float> function, Func<float, float> easeFunction, Action onEnd = null)
     {
         AnimationData<float> animationData = new AnimationData<float>()
         {
@@ -240,7 +241,8 @@ public class AnimatorManager : MonoBehaviour
             StartValue = start,
             EndValue = end,
             AnimationFunction = function,
-            EaseFunction = easeFunction
+            EaseFunction = easeFunction,
+            OnEnd = onEnd
         };
 
         float endTime = animationData.EndTime;

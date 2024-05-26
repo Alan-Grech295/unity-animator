@@ -5,7 +5,7 @@ public struct BoxData : SDFData
 {
     public Vector3 position;
     public Vector3 scale;
-    public Matrix4x4 rotationInverse;
+    public Matrix4x4 transformationInverse;
     public int MaterialIndex;
 
     public SDFObjectManager.SDFType Type => SDFObjectManager.SDFType.BOX;
@@ -75,7 +75,7 @@ public class Box : MonoBehaviour
         {
             position = transform.position,
             scale = transform.localScale,
-            rotationInverse = Matrix4x4.Rotate(transform.rotation).inverse,
+            transformationInverse = (Matrix4x4.Rotate(transform.rotation) * Matrix4x4.Translate(transform.position)).inverse,
         };
     }
 

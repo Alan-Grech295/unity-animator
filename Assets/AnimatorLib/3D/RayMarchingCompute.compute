@@ -13,7 +13,7 @@ struct BoxData
 {
     float3 position;
     float3 scale;
-    float4x4 rotationInverse;
+    float4x4 transformationInverse;
     int materialIndex;
 };
 
@@ -80,12 +80,26 @@ float _FarClip;
 
 #define INNER_STEP 0.01f
 
-#define MAX_TRANSPARENT_INTERSECTIONS 100
+#define MAX_TRANSPARENT_INTERSECTIONS 20
+// Number of supported objects as multiples of 32
+#define MAX_SUPPORTED_OBJECTS_32 16
+
+#define IS_VISIBLE(mask, index) ((mask[index >> 5] & (1 << (index & 31))) != 0)
+
+#define SET_MASK(mask, index, value) mask[index >> 5] = value ? (mask[index >> 5] | (1 << (index & 31))) : (mask[index >> 5] & ~(1 << (index & 31)))
+
+#define ALL_OBJECTS { \
+  0xFFFFFFFF,  0xFFFFFFFF,  0xFFFFFFFF,  0xFFFFFFFF,  \
+  0xFFFFFFFF,  0xFFFFFFFF,  0xFFFFFFFF,  0xFFFFFFFF,  \
+  0xFFFFFFFF,  0xFFFFFFFF,  0xFFFFFFFF,  0xFFFFFFFF,  \
+  0xFFFFFFFF,  0xFFFFFFFF,  0xFFFFFFFF,  0xFFFFFFFF,  \
+}
 
 struct Ray
 {
     float3 origin;
     float3 direction;
+    float3 directionInv;
 };
 
 Ray CreateRay(float3 origin, float3 direction)
@@ -93,6 +107,7 @@ Ray CreateRay(float3 origin, float3 direction)
     Ray ray;
     ray.origin = origin;
     ray.direction = direction;
+    ray.directionInv = 1.0f / direction;
     return ray;
 }
 
@@ -120,16 +135,16 @@ float SphereSDF(float3 center, float3 pos, float radius)
     return length(center - pos) - radius;
 }
 
-float BoxSDF(float3 center, float3 pos, float3 size)
+float BoxSDF(float3 pos, float3 size)
 {
-    float x = max(pos.x - center.x - size.x / 2.0,
-                  center.x - pos.x - size.x / 2.0);
+    float x = max(pos.x - size.x / 2.0,
+                  -pos.x - size.x / 2.0);
     
-    float y = max(pos.y - center.y - size.y / 2.0,
-                  center.y - pos.y - size.y / 2.0);
+    float y = max(pos.y - size.y / 2.0,
+                  -pos.y - size.y / 2.0);
     
-    float z = max(pos.z - center.z - size.z / 2.0,
-                  center.z - pos.z - size.z / 2.0);
+    float z = max(pos.z - size.z / 2.0,
+                  -pos.z - size.z / 2.0);
     
     return max(max(x, y), z);
 }
@@ -183,6 +198,29 @@ float SegmentSDF(float3 a, float3 b, float3 pos, float thickness, bool perspecti
     return length(pos - newPos) - thickness;
 }
 
+bool AABBIntersection(float3 bl, float3 tr, Ray ray)
+{
+    float tx1 = (bl.x - ray.origin.x) * ray.directionInv.x;
+    float tx2 = (tr.x - ray.origin.x) * ray.directionInv.x;
+    
+    float tmin = min(tx1, tx2);
+    float tmax = max(tx1, tx2);
+    
+    float ty1 = (bl.y - ray.origin.y) * ray.directionInv.y;
+    float ty2 = (tr.y - ray.origin.y) * ray.directionInv.y;
+    
+    tmin = max(tmin, min(ty1, ty2));
+    tmax = min(tmax, max(ty1, ty2));
+    
+    float tz1 = (bl.z - ray.origin.z) * ray.directionInv.z;
+    float tz2 = (tr.z - ray.origin.z) * ray.directionInv.z;
+    
+    tmin = max(tmin, min(tz1, tz2));
+    tmax = min(tmax, max(tz1, tz2));
+    
+    return tmax >= tmin && !isinf(tmin) && !isnan(tmin);
+}
+
 float LinearDepth(float depth)
 {
     if(depth == 0)
@@ -196,12 +234,16 @@ float SqrLength(float3 x)
     return dot(x, x);
 }
 
-float2 SceneSDF(float3 pos)
+float2 SceneSDF(float3 pos, uint objectMask[MAX_SUPPORTED_OBJECTS_32] = ALL_OBJECTS)
 {    
+    int index = 0;
+    
     float minDist = _FarClip;
     int materialIndex = 0;
-    for (int i = 0; i < _NumSpheres; i++)
+    for (int i = 0; i < _NumSpheres; i++, index++)
     {
+        if (!IS_VISIBLE(objectMask, index))
+            continue;
         SphereData sphere = _Spheres[i];
         float dist = SphereSDF(sphere.position, pos, sphere.radius);
         if ((dist >= 0 || minDist == _FarClip) && dist < minDist)
@@ -211,16 +253,18 @@ float2 SceneSDF(float3 pos)
         }
     }
     
-    for (int i = 0; i < _NumBoxes; i++)
+    for (int i = 0; i < _NumBoxes; i++, index++)
     {
+        if (!IS_VISIBLE(objectMask, index))
+            continue;
         BoxData box = _Boxes[i];
         
         if (SqrLength(box.scale) == 0)
            continue;
         
-        float3 rotatedPoint = mul(box.rotationInverse, float4(pos.xyz - box.position, 0)).xyz + box.position;
+        float3 localPoint = mul(box.transformationInverse, float4(pos.xyz - box.position, 1.0f)).xyz + box.position;
                 
-        float dist = BoxSDF(box.position, rotatedPoint, box.scale);
+        float dist = BoxSDF(localPoint, box.scale);
         if ((dist > -EPSILON || minDist == _FarClip) && dist < minDist)
         {
             minDist = dist;
@@ -228,8 +272,11 @@ float2 SceneSDF(float3 pos)
         }
     }
     
-    for (int i = 0; i < _NumLineSegments; i++)
+    for (int i = 0; i < _NumLineSegments; i++, index++)
     {
+        if (!IS_VISIBLE(objectMask, index))
+            continue;
+        
         LineSegmentData segment = _LineSegments[i];
         
         if (segment.Thickness == 0)
@@ -248,19 +295,19 @@ float2 SceneSDF(float3 pos)
     // return SmoothMin(SegmentSDF(0, float3(0, 0, 5), pt, 0.5f), SphereSDF(0, pt, 3), 1);
 }
 
-float3 SceneNormal(float3 pt)
+float3 SceneNormal(float3 pt, uint objectMask[MAX_SUPPORTED_OBJECTS_32] = ALL_OBJECTS)
 {
     float2 eps = float2(0, max(max(Epsilon(pt.x), Epsilon(pt.y)), Epsilon(pt.z)));
-    return normalize(float3(SceneSDF(pt + eps.yxx).x - SceneSDF(pt - eps.yxx).x,
-                                   SceneSDF(pt + eps.xyx).x - SceneSDF(pt - eps.xyx).x,
-                                   SceneSDF(pt + eps.xxy).x - SceneSDF(pt - eps.xxy).x));
+    return normalize(float3(SceneSDF(pt + eps.yxx, objectMask).x - SceneSDF(pt - eps.yxx, objectMask).x,
+                                   SceneSDF(pt + eps.xyx, objectMask).x - SceneSDF(pt - eps.xyx, objectMask).x,
+                                   SceneSDF(pt + eps.xxy, objectMask).x - SceneSDF(pt - eps.xxy, objectMask).x));
                                    
 }
 
-float4 GetColor(float3 pos, float3 rayDir, int materialIndex)
+float4 GetColor(float3 pos, float3 rayDir, int materialIndex, uint objectMask[MAX_SUPPORTED_OBJECTS_32] = ALL_OBJECTS)
 {
     MaterialData material = _Materials[materialIndex];
-    float3 normal = SceneNormal(pos);
+    float3 normal = SceneNormal(pos, objectMask);
     
     float3 finalCol = 0;
     
@@ -299,11 +346,42 @@ float4 GetColor(float3 pos, float3 rayDir, int materialIndex)
     return float4(finalCol, material.Opacity);
 }
 
+void GetObjectMask(Ray ray, out uint mask[MAX_SUPPORTED_OBJECTS_32])
+{
+    int index = 0;
+    for (int i = 0; i < _NumSpheres; i++, index++)
+    {
+        SphereData sphere = _Spheres[i];
+        
+        SET_MASK(mask, index, true);
+    }
+    
+    for (int i = 0; i < _NumBoxes; i++, index++)
+    {
+        BoxData box = _Boxes[i];
+        
+        SET_MASK(mask, index, true);
+    }
+    
+    for (int i = 0; i < _NumLineSegments; i++, index++)
+    {        
+        LineSegmentData segment = _LineSegments[i];
+        
+        float3 bl = min(segment.Start, segment.End) - segment.Thickness;
+        float3 tr = max(segment.Start, segment.End) + segment.Thickness;
+                
+        SET_MASK(mask, index, AABBIntersection(bl, tr, ray));
+    }
+}
+
 float4 RayMarch(float2 uv)
 {
     // Get a ray for the UVs
     Ray ray = CreateCameraRay(uv);
     float2 texCoord = (uv + 1.0f) / 2.0f * float2(_Width, _Height);
+    
+    uint mask[MAX_SUPPORTED_OBJECTS_32];
+    GetObjectMask(ray, mask);
     
     float maxDist = Linear01Depth(_Depth[texCoord]) * (_FarClip - _NearClip);
     
@@ -314,14 +392,14 @@ float4 RayMarch(float2 uv)
     float4 hitCols[MAX_TRANSPARENT_INTERSECTIONS];
     int index = 0;
     
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 100; i++)
     {
         float3 pt = ray.origin + ray.direction * curDist;
-        float2 sceneData = SceneSDF(pt);
+        float2 sceneData = SceneSDF(pt, mask);
         
         if (abs(sceneData.x) <= EPSILON)
         {
-            float4 col = GetColor(pt, ray.direction, (int) sceneData.y);
+            float4 col = GetColor(pt, ray.direction, (int) sceneData.y, mask);
             if (col.a > 0)
             {
                 hitCols[index] = col;

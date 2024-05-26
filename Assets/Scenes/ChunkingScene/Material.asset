@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: Material
   m_EditorClassIdentifier: 
   Albedo: {r: 1, g: 1, b: 1, a: 0}
-  Smoothness: 0.5
+  Smoothness: 0
   SpecularPower: 3
   Ambient: {r: 0, g: 0, b: 0, a: 0}
   AmbientStrength: 0.2
-  Opacity: 1
-  Lit: 1
+  Opacity: 0
+  Lit: 0

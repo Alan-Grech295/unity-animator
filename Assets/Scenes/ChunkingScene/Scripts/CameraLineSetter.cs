@@ -15,7 +15,7 @@ public class CameraLineSetter : MonoBehaviour
         
     }
 
-    void SetLines()
+    public void SetLines()
     {
         Camera camera = GetComponent<Camera>();
         foreach (LineSegment segment in lineSegments)
