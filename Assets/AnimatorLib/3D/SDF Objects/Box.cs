@@ -7,6 +7,8 @@ public struct BoxData : SDFData
     public Vector3 scale;
     public Matrix4x4 transformationInverse;
     public int MaterialIndex;
+    public Vector3 boundsMin;
+    public Vector3 boundsMax;
 
     public SDFObjectManager.SDFType Type => SDFObjectManager.SDFType.BOX;
 }
@@ -71,11 +73,28 @@ public class Box : MonoBehaviour
 
     private BoxData GetBoxData()
     {
+        Vector3 min = Vector3.positiveInfinity;
+        Vector3 max = Vector3.negativeInfinity;
+
+        for (int i = 0; i < 8; i++)
+        {
+            Vector3 corner = Vector3.zero;
+            corner.x = (i & 1) == 0 ? -0.5f : 0.5f;
+            corner.y = (i & 2) == 0 ? -0.5f : 0.5f;
+            corner.z = (i & 4) == 0 ? -0.5f : 0.5f;
+
+            corner = transform.TransformPoint(corner);
+            min = Vector3.Min(min, corner);
+            max = Vector3.Max(max, corner);
+        }
+
         return new BoxData()
         {
             position = transform.position,
             scale = transform.localScale,
             transformationInverse = (Matrix4x4.Rotate(transform.rotation) * Matrix4x4.Translate(transform.position)).inverse,
+            boundsMin = min,
+            boundsMax = max,
         };
     }
 

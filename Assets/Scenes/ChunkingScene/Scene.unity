@@ -278,7 +278,7 @@ MonoBehaviour:
   planes:
   - {fileID: 1357674787}
   - {fileID: 388735791}
-  planeThickness: 0.1
+  planeThickness: 0.05
   distance: 0.25
 --- !u!114 &135426907
 MonoBehaviour:

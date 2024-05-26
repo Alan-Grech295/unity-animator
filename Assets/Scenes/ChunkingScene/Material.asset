@@ -17,5 +17,5 @@ MonoBehaviour:
   SpecularPower: 3
   Ambient: {r: 0, g: 0, b: 0, a: 0}
   AmbientStrength: 0.2
-  Opacity: 0
+  Opacity: 0.3
   Lit: 0
