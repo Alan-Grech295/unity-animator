@@ -15,6 +15,8 @@ public struct LineSegmentData : SDFData
 [ExecuteInEditMode]
 public class LineSegment : MonoBehaviour
 {
+
+#if UNITY_EDITOR
     [MenuItem("GameObject/SDF/Line Segment")]
     static void CreateBox(MenuCommand menuCommand)
     {
@@ -37,6 +39,7 @@ public class LineSegment : MonoBehaviour
         Undo.RegisterCreatedObjectUndo(go, "Create " + go.name);
         Selection.activeObject = go;
     }
+#endif
 
     public SDFMaterial material;
 
@@ -66,8 +69,9 @@ public class LineSegment : MonoBehaviour
 
         set
         {
-            if(startTransform != null)
-                startTransform.position = value;
+            if (startTransform == null)
+                GetTransforms();
+            startTransform.position = value;
             start = value;
             dirty = true;
         }
@@ -82,8 +86,9 @@ public class LineSegment : MonoBehaviour
 
         set
         {
-            if(endTransform != null)
-                endTransform.position = value;
+            if (endTransform == null)
+                GetTransforms();
+            endTransform.position = value;
             end = value;
             dirty = true;
         }
@@ -108,38 +113,54 @@ public class LineSegment : MonoBehaviour
         sdfRef = SDFObjectManager.Add(GetSegmentData(), material);
 
         pastPos = transform.position;
+
+        GetTransforms();
+        start = startTransform.position;
+        end = endTransform.position;
+    }
+
+    private void GetTransforms()
+    {
+        startTransform = transform.GetChild(0);
+        endTransform = transform.GetChild(1);
     }
 
     // Update is called once per frame
     void Update()
     {
         if (pastPos != transform.position)
+        {
             dirty = true;
 
-#if UNITY_EDITOR
-        dirty = true;
-
-        if (sdfRef == null)
-        {
-            sdfRef = SDFObjectManager.Add(GetSegmentData(), material);
+            start = startTransform.position;
+            end = endTransform.position;
         }
 
-        if (startTransform == null)
+        if (!Application.isPlaying)
         {
-            startTransform = transform.GetChild(0);
-            startTransform.position = start;
+            dirty = true;
+
+            if (sdfRef == null)
+            {
+                sdfRef = SDFObjectManager.Add(GetSegmentData(), material);
+            }
+
+            if (startTransform == null)
+            {
+                startTransform = transform.GetChild(0);
+                startTransform.position = start;
+            }
+
+            start = startTransform.position;
+
+            if (endTransform == null)
+            {
+                endTransform = transform.GetChild(1);
+                endTransform.position = end;
+            }
+
+            end = endTransform.position;
         }
-
-        start = startTransform.position;
-
-        if (endTransform == null)
-        {
-            endTransform = transform.GetChild(1);
-            endTransform.position = end;
-        }
-
-        end = endTransform.position;
-#endif
 
         if (dirty)
         {
@@ -168,5 +189,6 @@ public class LineSegment : MonoBehaviour
     private void Clean()
     {
         pastPos = transform.position;
+        dirty = false;
     }
 }

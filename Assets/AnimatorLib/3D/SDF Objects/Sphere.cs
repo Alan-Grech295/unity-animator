@@ -13,6 +13,8 @@ public struct SphereData : SDFData
 [ExecuteInEditMode]
 public class Sphere : MonoBehaviour
 {
+
+#if UNITY_EDITOR
     [MenuItem("GameObject/SDF/Sphere")]
     static void CreateBox(MenuCommand menuCommand)
     {
@@ -25,6 +27,7 @@ public class Sphere : MonoBehaviour
         Undo.RegisterCreatedObjectUndo(go, "Create " + go.name);
         Selection.activeObject = go;
     }
+#endif
 
     public SDFMaterial material;
     public float Radius
@@ -63,14 +66,15 @@ public class Sphere : MonoBehaviour
         if (pastPos != transform.position)
             dirty = true;
 
-#if UNITY_EDITOR
-        dirty = true;
-
-        if (sdfRef == null)
+        if (!Application.isPlaying)
         {
-            sdfRef = SDFObjectManager.Add(GetSphereData(), material);
+            dirty = true;
+
+            if (sdfRef == null)
+            {
+                sdfRef = SDFObjectManager.Add(GetSphereData(), material);
+            }
         }
-#endif
 
         if (dirty)
         {
@@ -97,5 +101,6 @@ public class Sphere : MonoBehaviour
     private void Clean()
     {
         pastPos = transform.position;
+        dirty = false;
     }
 }

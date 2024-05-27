@@ -22,6 +22,7 @@ public class Box : MonoBehaviour
     private Vector3 pastPos;
     private bool dirty = false;
 
+#if UNITY_EDITOR
     [MenuItem("GameObject/SDF/Box")]
     static void CreateBox(MenuCommand menuCommand)
     {
@@ -34,6 +35,7 @@ public class Box : MonoBehaviour
         Undo.RegisterCreatedObjectUndo(go, "Create " + go.name);
         Selection.activeObject = go;
     }
+#endif
 
     // Start is called before the first frame update
     void OnEnable()
@@ -49,14 +51,15 @@ public class Box : MonoBehaviour
         if (pastPos != transform.position)
             dirty = true;
 
-#if UNITY_EDITOR
-        dirty = true;
-
-        if (sdfRef == null)
+        if (!Application.isPlaying)
         {
-            sdfRef = SDFObjectManager.Add(GetBoxData(), material);
+            dirty = true;
+
+            if (sdfRef == null)
+            {
+                sdfRef = SDFObjectManager.Add(GetBoxData(), material);
+            }
         }
-#endif
 
         if (dirty)
         {
@@ -101,5 +104,6 @@ public class Box : MonoBehaviour
     private void Clean()
     {
         pastPos = transform.position;
+        dirty = false;
     }
 }

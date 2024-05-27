@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,7 +7,7 @@ public class DrawGrid : MonoBehaviour
     public Bounds bounds;
     public float increment = 5.0f;
 
-    public bool regenerate = true;
+    //public bool regenerate = true;
 
     private List<LineSegment> gridLineSegments = new List<LineSegment>();
     // Start is called before the first frame update
@@ -19,11 +18,11 @@ public class DrawGrid : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (regenerate)
-        {
-            regenerate = false;
-            CreateGrid();
-        }
+        //if (regenerate)
+        //{
+        //    regenerate = false;
+        //    CreateGrid();
+        //}
     }
 
     private void OnDrawGizmos()
@@ -54,7 +53,7 @@ public class DrawGrid : MonoBehaviour
         gridLineSegments.Clear();
 
         float delay = 0;
-        
+
         for (float x = bounds.min.x; x <= bounds.max.x; x += increment, delay += 0.1f)
         {
             GameObject go = Instantiate(segmentPrefab.gameObject);

@@ -1,18 +1,18 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class CameraLineSetter : MonoBehaviour
 {
     public LineSegment[] lineSegments;
-    public Box[] planes;
+    public Box nearPlane;
     public float planeThickness = 0.1f;
     public float distance = 1;
 
     // Start is called before the first frame update
     void Start()
     {
-        
+        SetLines();
+
+        SetLineVisibility(false);
     }
 
     public void SetLines()
@@ -35,10 +35,8 @@ public class CameraLineSetter : MonoBehaviour
         Vector2 nearSize = GetFrustumSize(camera, camera.nearClipPlane);
         Vector2 farSize = GetFrustumSize(camera, camera.farClipPlane);
 
-        planes[0].transform.localScale = new Vector3(nearSize.x, nearSize.y, planeThickness);
-        planes[0].transform.localPosition = Vector3.forward * camera.nearClipPlane;
-        planes[1].transform.localScale = new Vector3(farSize.x, farSize.y, planeThickness);
-        planes[1].transform.localPosition = Vector3.forward * camera.farClipPlane;
+        nearPlane.transform.localScale = new Vector3(nearSize.x, nearSize.y, planeThickness);
+        nearPlane.transform.localPosition = Vector3.forward * camera.nearClipPlane;
     }
 
     Vector2 GetFrustumSize(Camera camera, float distance)
@@ -52,6 +50,16 @@ public class CameraLineSetter : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        SetLines();
+
+    }
+
+    public void SetLineVisibility(bool visible)
+    {
+        foreach (LineSegment segment in lineSegments)
+        {
+            segment.gameObject.SetActive(visible);
+        }
+
+        nearPlane.gameObject.SetActive(visible);
     }
 }

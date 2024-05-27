@@ -69,14 +69,15 @@ public class SDFLight : MonoBehaviour
         if (pastPos != transform.position)
             dirty = true;
 
-#if UNITY_EDITOR
-        dirty = true;
-
-        if (sdfRef == null)
+        if (!Application.isPlaying)
         {
-            sdfRef = SDFObjectManager.AddLight(GetLightData());
+            dirty = true;
+
+            if (sdfRef == null)
+            {
+                sdfRef = SDFObjectManager.AddLight(GetLightData());
+            }
         }
-#endif
 
         if (dirty)
         {
@@ -105,5 +106,6 @@ public class SDFLight : MonoBehaviour
     private void Clean()
     {
         pastPos = transform.position;
+        dirty = false;
     }
 }
